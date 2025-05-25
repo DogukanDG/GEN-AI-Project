@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-- **Developed By**: GenAI Course Group 2 Members
+- **Developed By**: GenAI Course Group 15 Members
 - **Date**: Started on 20/05/2025
 
 ## Technologies Used
