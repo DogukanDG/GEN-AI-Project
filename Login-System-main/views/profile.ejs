@@ -1,0 +1,41 @@
+<%- include("./partials/header.ejs") %>
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-4 text-center">
+      <img src="<%= user.profile_picture || '/assets/user.svg' %>" alt="Profile Picture" class="rounded-circle mb-3" width="150" height="150">
+      <form action="/user/profile/update" method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+          <input class="form-control" type="file" name="profile_picture" accept="image/*">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Change Picture</button>
+      </form>
+      <% if (user.profile_picture) { %>
+      <form action="/user/profile/delete-picture" method="POST" style="margin-top: 10px;">
+        <button type="submit" class="btn btn-danger btn-sm">Delete Picture</button>
+      </form>
+      <% } %>
+    </div>
+    <div class="col-md-8">
+      <h2>Account Information</h2>
+      <ul class="list-group mb-3">
+        <li class="list-group-item"><strong>Name:</strong> <%= user.name %></li>
+        <li class="list-group-item"><strong>Email:</strong> <%= user.email %></li>
+      </ul>
+      <h3>Change Password</h3>
+      <form action="/user/profile/password" method="POST">
+        <div class="mb-3">
+          <label for="currentPassword" class="form-label">Current Password</label>
+          <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
+        </div>
+        <div class="mb-3">
+          <label for="newPassword" class="form-label">New Password</label>
+          <input type="password" class="form-control" id="newPassword" name="newPassword" required>
+        </div>
+        <button type="submit" class="btn btn-warning">Change Password</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include("./partials/footer.ejs") %>
