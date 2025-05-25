@@ -4,9 +4,8 @@ This is a login system built using Node.js, Express, and PostgreSQL. It allows u
 
 ## Project Overview
 
-- **Developed By**: Saubhagya Patel
-- **Date**: Started on 29/01/2024
-- **Contact**: patelsaubhagya0144@gmail.com
+- **Developed By**: GenAI Course Group 2 Members
+- **Date**: Started on 20/05/2025
 
 ## Technologies Used
 
@@ -17,7 +16,6 @@ This is a login system built using Node.js, Express, and PostgreSQL. It allows u
 - **Node.js and Express**: Backend framework and server for handling HTTP requests and responses.
 - **pg**: Node.js library for interfacing with PostgreSQL database.
 - **bcrypt**: Library for hashing and salting passwords before storing them in the database.
-- **Nodemailer**: Used for sending OTP (One-Time Password) for password reset functionality.
 - **Passport**: Middleware for authentication and session management, along with cookie storage.
 
 ## Features
@@ -26,7 +24,6 @@ This is a login system built using Node.js, Express, and PostgreSQL. It allows u
 - **Login**: Registered users can log in securely using their credentials.
 - **Password Hashing**: User passwords are hashed and salted using bcrypt before storing them in the database to enhance security.
 - **Session Management**: Passport.js is used for managing user sessions and storing session data in cookies.
-- **Forgot Password**: Users can request a password reset OTP via email using Nodemailer.
 - **Account Management**: Authenticated users can update their account information, including changing passwords.
 - **Security**: Secure transmission of data between client and server using HTTPS. Implementation of rate limiting and logging mechanisms for enhanced security.
 
@@ -34,18 +31,17 @@ This is a login system built using Node.js, Express, and PostgreSQL. It allows u
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/saubhagya-patel/login-system.git
+   git clone https://github.com/DogukanDG/GEN-AI-Project.git
    ```
 
 2. Install dependencies:
    ```bash
-   cd login-system
+   cd AI-Facility-Management
    npm install
    ```
 
 3. Set up PostgreSQL database:
    - Create a new PostgreSQL database.
-   - Update the database connection details in `config.js`.
 
 4. Run the application:
    ```bash
