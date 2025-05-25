@@ -28,5 +28,5 @@ app.use(passport.session());
 app.use("/user",router);
 
 app.listen(port,() => {
-    console.log(`server is listening at http://localhost:${port}/user`);
+    console.log(`server is listening at http://127.0.0.1:${port}/user`);
 })

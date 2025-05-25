@@ -4,11 +4,14 @@ import path from "path";
 import fs from "fs";
 
 const db=new pg.Client({
-    host:"localhost",
-    user:"postgres",
-    database:"postgres",
-    password:"5254322",
-    port:"5432",
+    host:"db-postgresql-fra1-58752-do-user-18319666-0.d.db.ondigitalocean.com",
+    user:"doadmin",
+    database:"defaultdb",
+    password:"AVNS_ep-oncpEaSM5sC89eD4",
+    port:"25060",
+    ssl:{
+        rejectUnauthorized:false
+    }
 })
 db.connect();
 
