@@ -1,6 +1,4 @@
-# Login System with Node.js, Express, and PostgreSQL
-
-This is a login system built using Node.js, Express, and PostgreSQL. It allows users to sign up, log in, and perform basic account management functionalities.
+# AI Integrated Facility Booking System with Node.js, Express, and PostgreSQL
 
 ## Project Overview
 
