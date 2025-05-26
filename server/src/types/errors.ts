@@ -1,4 +1,4 @@
-// import { ValidationError } from 'express-validator';
+import { ValidationError } from 'express-validator';
 
 /**
  * ApplicationError contains all custom errors. This type is helpful for
@@ -29,8 +29,8 @@ export class HttpError extends Error {
 }
 
 export class HttpBodyValidationError extends HttpError {
-  public errors: any[];
-  constructor(statusCode: number, errors: any[]) {
+  public errors: ValidationError[];
+  constructor(statusCode: number, errors: ValidationError[]) {
     super(statusCode, 'Field Validation Error');
     this.errors = errors;
   }

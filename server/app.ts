@@ -13,6 +13,9 @@ import path from 'path';
 /**
  * IMPORT ROUTES
  */
+import authRoutes from './src/modules/auth/auth.route';
+import userRoutes from './src/modules/user/user.route';
+import { handleError } from './src/middlewares/error-handler.middleware';
 
 const app = express();
 
@@ -49,9 +52,10 @@ app.use(morgan('tiny', { stream: accessLogStream }));
 /**
  * USE ROUTES
  */
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
 
-// TODO: Add Global error handler after routes
-// app.use(handleError);
+app.use(handleError);
 
 const server = app.listen(process.env.PORT);
 console.log('Server is running');
