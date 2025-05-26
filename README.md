@@ -7,14 +7,11 @@
 
 ## Technologies Used
 
-- **EJS**: Templating engine for dynamically generating HTML content.
-- **CSS and JavaScript**: Frontend styling and interactivity.
-- **Bootstrap**: Used for creating forms for signup and login, providing a responsive and visually appealing design.
-- **PostgreSQL**: Database management system for storing user data securely.
-- **Node.js and Express**: Backend framework and server for handling HTTP requests and responses.
-- **pg**: Node.js library for interfacing with PostgreSQL database.
-- **bcrypt**: Library for hashing and salting passwords before storing them in the database.
-- **Passport**: Middleware for authentication and session management, along with cookie storage.
+- **Node.js**: JavaScript Runtime to create JavaScript applications.
+- **Express.js**: JavaScript web application framework to Restful APIs.
+- **PostgreSQL**: Database management system for storing data securely.
+- **pg**: A library for interfacing with PostgreSQL database.
+- **Prisma**: An ORM for writing query easily.
 
 ## Features
 
@@ -28,25 +25,42 @@
 ## Setup Instructions
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/DogukanDG/GEN-AI-Project.git
    ```
 
-2. Install dependencies:
+2. Create .env file.
+
+```bash
+PORT=3000
+DATABASE_URL=postgres://user:password@localhost:5432/room-management?schema=public
+JWT_SECRET=your-secret
+
+POSTGRES_USER=username
+POSTGRES_PASSWORD=password
+POSTGRES_DB=room-management
+```
+
+3. Install dependencies:
+
    ```bash
-   cd AI-Facility-Management
+   cd server
    npm install
+   npx prisma generate
    ```
 
-3. Set up PostgreSQL database:
+4. Set up PostgreSQL database:
+
    - Create a new PostgreSQL database.
 
-4. Run the application:
+5. Run the application:
+
    ```bash
-   npm start
+   npm run dev
    ```
 
-5. Access the application in your web browser at `http://localhost:3000`.
+6. Access the application in your web browser at `http://localhost:3000`.
 
 ## Usage
 
