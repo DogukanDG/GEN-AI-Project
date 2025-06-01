@@ -20,6 +20,7 @@ import prisma from './src/configs/database';
  */
 import authRoutes from './src/modules/auth/auth.route';
 import userRoutes from './src/modules/user/user.route';
+import roomFeatureRoutes from './src/modules/roomFeature/roomFeature.route';
 import { handleError } from './src/middlewares/error-handler.middleware';
 
 const app = express();
@@ -59,6 +60,7 @@ app.use(morgan('tiny', { stream: accessLogStream }));
  */
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/room-features', roomFeatureRoutes);
 
 app.use(handleError);
 
