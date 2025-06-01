@@ -11,6 +11,11 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * IMPORT DATABASE
+ */
+import prisma from './src/configs/database';
+
+/**
  * IMPORT ROUTES
  */
 import authRoutes from './src/modules/auth/auth.route';
@@ -57,8 +62,55 @@ app.use('/api/v1/users', userRoutes);
 
 app.use(handleError);
 
-const server = app.listen(process.env.PORT);
-console.log('Server is running');
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ 
+      status: 'healthy', 
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(503).json({ 
+      status: 'unhealthy', 
+      database: 'disconnected',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
-// TODO: Add cluster for performance
-// TODO: Add gracefully shutdown
+const server = app.listen(process.env.PORT, () => {
+  console.log(`🚀 Server is running on port ${process.env.PORT}`);
+  console.log(`📊 Health check available at http://localhost:${process.env.PORT}/health`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(async () => {
+    try {
+      await prisma.$disconnect();
+      console.log('Process terminated');
+      process.exit(0);
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(async () => {
+    try {
+      await prisma.$disconnect();
+      console.log('Process terminated');
+      process.exit(0);
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
+});
