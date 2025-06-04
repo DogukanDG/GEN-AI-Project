@@ -1,12 +1,18 @@
 import { Room } from '@prisma/client';
 import * as roomRepository from './room.repository';
 import { CreateRoomInput } from '../../types/room';
+import { HttpError } from '../../types/errors';
 
 /**
  * Creates a room and returns it.
  * @returns Created room object
  */
 export async function createRoom(data: CreateRoomInput) {
+  const isRoomExist = await roomRepository.findByRoomNumber(data.room_number);
+  if (isRoomExist) {
+    throw new HttpError(409, 'Room already exist');
+  }
+
   return await roomRepository.createRoom(data);
 }
 
