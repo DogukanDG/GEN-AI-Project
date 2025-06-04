@@ -1,0 +1,15 @@
+model Reservation {
+  reservation_id Int      @id @default(autoincrement())
+  room_number    String
+  user_id        Int
+  start_datetime DateTime
+  end_datetime   DateTime
+  booking_status String
+  room           Room     @relation(fields: [room_number], references: [room_number])
+  user           User     @relation(fields: [user_id], references: [user_id])
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([room_number])
+  @@index([user_id])
+}
