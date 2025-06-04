@@ -23,7 +23,8 @@ export const authorizeUser = (
   try {
     decodedData = jwt.verify(token, process.env.JWT_SECRET!) as LoginJwtPayload;
   } catch {
-    throw new HttpError(500, 'Token could not be verified');
+    // Invalid or expired token means the user is not authorized
+    throw new HttpError(401, 'Token could not be verified');
   }
 
   if (!decodedData) {
