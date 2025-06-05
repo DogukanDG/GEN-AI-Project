@@ -1,12 +1,21 @@
 import prisma from '../../configs/database';
 import { CreateRoomFeatureRequest, UpdateRoomFeatureRequest } from '../../types/roomFeature';
 
-export class RoomFeatureRepository {
-  async create(userId: number, data: CreateRoomFeatureRequest) {
+export class RoomFeatureRepository {  async create(userId: number, data: CreateRoomFeatureRequest) {
     return await prisma.roomFeature.create({
       data: {
-        title: data.title,
-        description: data.description,
+        roomNumber: data.roomNumber,
+        floor: data.floor,
+        roomType: data.roomType,
+        capacity: data.capacity,
+        areaSqm: data.areaSqm,
+        windowCount: data.windowCount,
+        hasNaturalLight: data.hasNaturalLight,
+        hasProjector: data.hasProjector,
+        hasMicrophone: data.hasMicrophone,
+        hasCamera: data.hasCamera,
+        hasAirConditioner: data.hasAirConditioner,
+        hasNoiseCancelling: data.hasNoiseCancelling,
         userId: userId,
       },
     });
@@ -27,14 +36,12 @@ export class RoomFeatureRepository {
       },
     });
   }
-
   async findByUserId(userId: number) {
     return await prisma.roomFeature.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
   }
-
   async findAll() {
     return await prisma.roomFeature.findMany({
       include: {
@@ -55,7 +62,7 @@ export class RoomFeatureRepository {
     return await prisma.roomFeature.update({
       where: { 
         id,
-        userId, // Ensure user can only update their own room features
+        ...(userId && { userId }), // Only filter by userId if provided
       },
       data,
     });
@@ -65,7 +72,7 @@ export class RoomFeatureRepository {
     return await prisma.roomFeature.delete({
       where: { 
         id,
-        userId, // Ensure user can only delete their own room features
+        ...(userId && { userId }), // Only filter by userId if provided
       },
     });
   }
@@ -74,7 +81,7 @@ export class RoomFeatureRepository {
     return await prisma.roomFeature.findFirst({
       where: { 
         id,
-        userId,
+        ...(userId && { userId }),
       },
     });
   }

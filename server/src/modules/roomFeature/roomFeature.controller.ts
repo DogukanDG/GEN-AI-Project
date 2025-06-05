@@ -8,15 +8,37 @@ export class RoomFeatureController {
   constructor() {
     this.roomFeatureService = new RoomFeatureService();
   }
-
   createRoomFeature = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = req.user as CustomJwtPayload;
-      const { title, description } = req.body;
+      const {
+        roomNumber,
+        floor,
+        roomType,
+        capacity,
+        areaSqm,
+        windowCount,
+        hasNaturalLight,
+        hasProjector,
+        hasMicrophone,
+        hasCamera,
+        hasAirConditioner,
+        hasNoiseCancelling,
+      } = req.body;
 
       const roomFeature = await this.roomFeatureService.createRoomFeature(user.id, {
-        title,
-        description,
+        roomNumber,
+        floor,
+        roomType,
+        capacity,
+        areaSqm,
+        windowCount,
+        hasNaturalLight,
+        hasProjector,
+        hasMicrophone,
+        hasCamera,
+        hasAirConditioner,
+        hasNoiseCancelling,
       });
 
       res.status(201).json({
@@ -71,17 +93,42 @@ export class RoomFeatureController {
       throw error;
     }
   };
-
   updateRoomFeature = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = req.user as CustomJwtPayload;
       const { id } = req.params;
-      const { title, description } = req.body;
+      const {
+        roomNumber,
+        floor,
+        roomType,
+        capacity,
+        areaSqm,
+        windowCount,
+        hasNaturalLight,
+        hasProjector,
+        hasMicrophone,
+        hasCamera,
+        hasAirConditioner,
+        hasNoiseCancelling,
+      } = req.body;
 
       const roomFeature = await this.roomFeatureService.updateRoomFeature(
         parseInt(id),
         user.id,
-        { title, description }
+        {
+          roomNumber,
+          floor,
+          roomType,
+          capacity,
+          areaSqm,
+          windowCount,
+          hasNaturalLight,
+          hasProjector,
+          hasMicrophone,
+          hasCamera,
+          hasAirConditioner,
+          hasNoiseCancelling,
+        }
       );
 
       res.status(200).json({

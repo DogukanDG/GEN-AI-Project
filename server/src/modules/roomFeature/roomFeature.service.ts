@@ -8,19 +8,36 @@ export class RoomFeatureService {
   constructor() {
     this.roomFeatureRepository = new RoomFeatureRepository();
   }
-
   async createRoomFeature(userId: number, data: CreateRoomFeatureRequest): Promise<RoomFeatureResponse> {
-    if (!data.title || data.title.trim().length === 0) {
-      throw new BadRequestError('Title is required');
+    if (!data.roomNumber || data.roomNumber.trim().length === 0) {
+      throw new BadRequestError('Room number is required');
     }
 
-    if (!data.description || data.description.trim().length === 0) {
-      throw new BadRequestError('Description is required');
+    if (!data.roomType || data.roomType.trim().length === 0) {
+      throw new BadRequestError('Room type is required');
+    }
+
+    if (data.capacity <= 0) {
+      throw new BadRequestError('Capacity must be greater than 0');
+    }
+
+    if (data.areaSqm <= 0) {
+      throw new BadRequestError('Area must be greater than 0');
     }
 
     const roomFeature = await this.roomFeatureRepository.create(userId, {
-      title: data.title.trim(),
-      description: data.description.trim(),
+      roomNumber: data.roomNumber.trim(),
+      floor: data.floor,
+      roomType: data.roomType.trim(),
+      capacity: data.capacity,
+      areaSqm: data.areaSqm,
+      windowCount: data.windowCount,
+      hasNaturalLight: data.hasNaturalLight,
+      hasProjector: data.hasProjector,
+      hasMicrophone: data.hasMicrophone,
+      hasCamera: data.hasCamera,
+      hasAirConditioner: data.hasAirConditioner,
+      hasNoiseCancelling: data.hasNoiseCancelling,
     });
 
     return roomFeature;
@@ -43,7 +60,6 @@ export class RoomFeatureService {
   async getAllRoomFeatures(): Promise<RoomFeatureResponse[]> {
     return await this.roomFeatureRepository.findAll();
   }
-
   async updateRoomFeature(id: number, userId: number, data: UpdateRoomFeatureRequest): Promise<RoomFeatureResponse> {
     // Check if room feature exists and belongs to user
     const existingRoomFeature = await this.roomFeatureRepository.findByIdAndUserId(id, userId);
@@ -53,21 +69,59 @@ export class RoomFeatureService {
     }
 
     // Validate data
-    if (data.title !== undefined && data.title.trim().length === 0) {
-      throw new BadRequestError('Title cannot be empty');
+    if (data.roomNumber !== undefined && data.roomNumber.trim().length === 0) {
+      throw new BadRequestError('Room number cannot be empty');
     }
 
-    if (data.description !== undefined && data.description.trim().length === 0) {
-      throw new BadRequestError('Description cannot be empty');
+    if (data.roomType !== undefined && data.roomType.trim().length === 0) {
+      throw new BadRequestError('Room type cannot be empty');
+    }
+
+    if (data.capacity !== undefined && data.capacity <= 0) {
+      throw new BadRequestError('Capacity must be greater than 0');
+    }
+
+    if (data.areaSqm !== undefined && data.areaSqm <= 0) {
+      throw new BadRequestError('Area must be greater than 0');
     }
 
     // Prepare update data
     const updateData: UpdateRoomFeatureRequest = {};
-    if (data.title !== undefined) {
-      updateData.title = data.title.trim();
+    if (data.roomNumber !== undefined) {
+      updateData.roomNumber = data.roomNumber.trim();
     }
-    if (data.description !== undefined) {
-      updateData.description = data.description.trim();
+    if (data.roomType !== undefined) {
+      updateData.roomType = data.roomType.trim();
+    }
+    if (data.floor !== undefined) {
+      updateData.floor = data.floor;
+    }
+    if (data.capacity !== undefined) {
+      updateData.capacity = data.capacity;
+    }
+    if (data.areaSqm !== undefined) {
+      updateData.areaSqm = data.areaSqm;
+    }
+    if (data.windowCount !== undefined) {
+      updateData.windowCount = data.windowCount;
+    }
+    if (data.hasNaturalLight !== undefined) {
+      updateData.hasNaturalLight = data.hasNaturalLight;
+    }
+    if (data.hasProjector !== undefined) {
+      updateData.hasProjector = data.hasProjector;
+    }
+    if (data.hasMicrophone !== undefined) {
+      updateData.hasMicrophone = data.hasMicrophone;
+    }
+    if (data.hasCamera !== undefined) {
+      updateData.hasCamera = data.hasCamera;
+    }
+    if (data.hasAirConditioner !== undefined) {
+      updateData.hasAirConditioner = data.hasAirConditioner;
+    }
+    if (data.hasNoiseCancelling !== undefined) {
+      updateData.hasNoiseCancelling = data.hasNoiseCancelling;
     }
 
     return await this.roomFeatureRepository.update(id, userId, updateData);
