@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { RoomFeatureController } from './roomFeature.controller';
 import { authorizeUser } from '../../middlewares/authorize-user.middleware';
+import { requireAdmin, setUserRole } from '../../middlewares/role-authorization.middleware';
 import { validateRequest } from '../../middlewares/request-validator.middleware';
 import {
   createRoomFeatureValidation,
@@ -12,10 +13,11 @@ import {
 const router = Router();
 const roomFeatureController = new RoomFeatureController();
 
-// Create a new room feature (Protected)
+// Create a new room feature (Admin only)
 router.post(
   '/',
   authorizeUser,
+  requireAdmin,
   createRoomFeatureValidation,
   validateRequest,
   roomFeatureController.createRoomFeature
@@ -25,38 +27,43 @@ router.post(
 router.get(
   '/my-room-features',
   authorizeUser,
+  setUserRole,
   roomFeatureController.getUserRoomFeatures
 );
 
-// Get all room features (Protected)
+// Get all room features (Protected - all authenticated users can view)
 router.get(
   '/all',
   authorizeUser,
+  setUserRole,
   roomFeatureController.getAllRoomFeatures
 );
 
-// Get room feature by ID (Protected)
+// Get room feature by ID (Protected - all authenticated users can view)
 router.get(
   '/:id',
   authorizeUser,
+  setUserRole,
   getRoomFeatureValidation,
   validateRequest,
   roomFeatureController.getRoomFeatureById
 );
 
-// Update room feature (Protected - only owner can update)
+// Update room feature (Admin only)
 router.put(
   '/:id',
   authorizeUser,
+  requireAdmin,
   updateRoomFeatureValidation,
   validateRequest,
   roomFeatureController.updateRoomFeature
 );
 
-// Delete room feature (Protected - only owner can delete)
+// Delete room feature (Admin only)
 router.delete(
   '/:id',
   authorizeUser,
+  requireAdmin,
   deleteRoomFeatureValidation,
   validateRequest,
   roomFeatureController.deleteRoomFeature

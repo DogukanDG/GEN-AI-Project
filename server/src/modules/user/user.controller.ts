@@ -6,7 +6,7 @@ export async function signup(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const { name, surname, email, password } = req.body;
+  const { name, surname, email, password, role } = req.body;
 
   try {
     const newUser = await userService.signup({
@@ -14,6 +14,7 @@ export async function signup(
       surname,
       email,
       password,
+      role: role || 'normal', // Default to 'normal' if role is not provided
     });
 
     res.status(201).json({
