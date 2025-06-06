@@ -13,9 +13,9 @@ export const checkEnvironmentVariables = (variables: string[]) => {
   }
 
   for (const variable of variables) {
-    if (!(variable in process.env) || !process.env[variable] || process.env[variable]?.trim() === '') {
+    if (!(variable in process.env)) {
       throw new Error(
-        `${variable} is missing or empty in .env file. Check ${variable} and its value.`
+        `${variable} is missing in .env file. Check ${variable} and its value.`
       );
     }
   }

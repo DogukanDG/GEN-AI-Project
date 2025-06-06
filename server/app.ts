@@ -11,16 +11,11 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * IMPORT DATABASE
- */
-import prisma from './src/configs/database';
-
-/**
  * IMPORT ROUTES
  */
 import authRoutes from './src/modules/auth/auth.route';
 import userRoutes from './src/modules/user/user.route';
-import roomFeatureRoutes from './src/modules/roomFeature/roomFeature.route';
+import roomRoutes from './src/modules/room/room.route';
 import { handleError } from './src/middlewares/error-handler.middleware';
 
 const app = express();
@@ -60,59 +55,12 @@ app.use(morgan('tiny', { stream: accessLogStream }));
  */
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/room-features', roomFeatureRoutes);
+app.use('/api/v1/rooms', roomRoutes);
 
 app.use(handleError);
 
-// Health check endpoint
-app.get('/health', async (req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({ 
-      status: 'healthy', 
-      database: 'connected',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(503).json({ 
-      status: 'unhealthy', 
-      database: 'disconnected',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+const server = app.listen(process.env.PORT);
+console.log('Server is running');
 
-const server = app.listen(process.env.PORT, () => {
-  console.log(`🚀 Server is running on port ${process.env.PORT}`);
-  console.log(`📊 Health check available at http://localhost:${process.env.PORT}/health`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(async () => {
-    try {
-      await prisma.$disconnect();
-      console.log('Process terminated');
-      process.exit(0);
-    } catch (error) {
-      console.error('Error during shutdown:', error);
-      process.exit(1);
-    }
-  });
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(async () => {
-    try {
-      await prisma.$disconnect();
-      console.log('Process terminated');
-      process.exit(0);
-    } catch (error) {
-      console.error('Error during shutdown:', error);
-      process.exit(1);
-    }
-  });
-});
+// TODO: Add cluster for performance
+// TODO: Add gracefully shutdown

@@ -6,37 +6,3 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
-model User {
-  id           Int           @id @default(autoincrement())
-  name         String
-  surname      String
-  email        String        @unique
-  password     String
-  role         String        @default("normal")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  roomFeatures RoomFeature[]
-}
-
-model RoomFeature {
-  id                   Int      @id @default(autoincrement())
-  roomNumber           String   @unique @map("room_number")
-  floor                Int
-  roomType             String   @map("room_type")
-  capacity             Int
-  areaSqm              Float    @map("area_sqm")
-  windowCount          Int      @map("window_count")
-  hasNaturalLight      Boolean  @map("has_natural_light")
-  hasProjector         Boolean  @map("has_projector")
-  hasMicrophone        Boolean  @map("has_microphone")
-  hasCamera            Boolean  @map("has_camera")
-  hasAirConditioner    Boolean  @map("has_air_conditioner")
-  hasNoiseCancelling   Boolean  @map("has_noise_cancelling")
-  userId               Int?     @map("user_id")
-  user                 User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
-
-  @@map("room_features")
-}

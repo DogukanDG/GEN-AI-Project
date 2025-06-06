@@ -5,7 +5,7 @@ import { ValidationError } from 'express-validator';
  * the error handler to use the statusCode of these errors. So, to add a new type
  * to ApplicationError, the new error should have a `statusCode` property.
  */
-export type ApplicationError = HttpError | HttpBodyValidationError | NotFoundError | BadRequestError;
+export type ApplicationError = HttpError | HttpBodyValidationError;
 
 /**
  * Generic type for the error handler's error parameter.
@@ -33,17 +33,5 @@ export class HttpBodyValidationError extends HttpError {
   constructor(statusCode: number, errors: ValidationError[]) {
     super(statusCode, 'Field Validation Error');
     this.errors = errors;
-  }
-}
-
-export class NotFoundError extends HttpError {
-  constructor(message: string = 'Resource not found') {
-    super(404, message);
-  }
-}
-
-export class BadRequestError extends HttpError {
-  constructor(message: string = 'Bad request') {
-    super(400, message);
   }
 }

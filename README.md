@@ -47,7 +47,10 @@ POSTGRES_DB=room-management
    ```bash
    cd server
    npm install
+
    npx prisma generate
+
+   npx prisma migrate dev --name init
    ```
 
 4. Set up PostgreSQL database:
