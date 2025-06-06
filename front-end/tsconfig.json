@@ -1,7 +1,12 @@
 {
   "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
+  "theme": {
+    "extend": {
+      "fontFamily": {
+        // `font-sans` sınıfı artık Roboto’yu kullanacak
+        "sans": ["Roboto", "ui-sans-serif", "system-ui", "sans-serif"]
+      }
+    }
+  }
 }
