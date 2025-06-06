@@ -15,6 +15,7 @@ import path from 'path';
  */
 import authRoutes from './src/modules/auth/auth.route';
 import userRoutes from './src/modules/user/user.route';
+import roomRoutes from './src/modules/room/room.route';
 import { handleError } from './src/middlewares/error-handler.middleware';
 
 const app = express();
@@ -54,6 +55,7 @@ app.use(morgan('tiny', { stream: accessLogStream }));
  */
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/rooms', roomRoutes);
 
 app.use(handleError);
 
