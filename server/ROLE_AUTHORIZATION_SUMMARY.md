@@ -205,7 +205,7 @@ body('role')
 ## Future Enhancements
 
 ### Potential Improvements
-1. **Role Hierarchy**: Implement super-admin roles
+1. **Role Hierarchy**: Implement super-admin roless
 2. **Permission Granularity**: Resource-specific permissions
 3. **Audit Logging**: Track admin operations
 4. **Role Management**: Admin interface for role changes
