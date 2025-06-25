@@ -1,11 +1,12 @@
 import { Response, NextFunction, Request } from 'express';
 import jwt from 'jsonwebtoken';
-import { LoginJwtPayload } from '../types/customJwtPayload';
+import { LoginJwtPayload, CustomJwtPayload } from '../types/customJwtPayload';
 import { HttpError } from '../types/errors';
 
 declare module 'express-serve-static-core' {
   interface Request {
     userId: number;
+    user: CustomJwtPayload;
   }
 }
 
@@ -31,6 +32,7 @@ export const authorizeUser = (
   }
 
   req.userId = decodedData.id;
+  req.user = decodedData as CustomJwtPayload;
 
   next();
 };

@@ -24,7 +24,7 @@ export async function login(email: string, password: string): Promise<string> {
     throw new HttpError(401, 'Password is wrong. Please try again');
   }
 
-  const token = createLoginToken(user.user_id, user.email);
+  const token = createLoginToken(user.id, user.email);
 
   return token;
 }
