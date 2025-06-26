@@ -10,6 +10,7 @@ import { HttpError } from '../../types/errors';
  * @param surname New user's surname
  * @param email New user's email
  * @param password New user's password
+ * @param role New user's role (optional, defaults to 'normal')
  * @returns New user object.
  */
 export async function signup(data: {
@@ -17,6 +18,7 @@ export async function signup(data: {
   surname: string;
   email: string;
   password: string;
+  role?: string;
 }): Promise<User> {
   const doesEmailExist = await isEmailRegistered(data.email);
   if (doesEmailExist) {
@@ -27,6 +29,7 @@ export async function signup(data: {
   const newUser = await userRepository.createUser({
     ...data,
     password: hashedPassword,
+    role: data.role || 'normal',
   });
 
   return newUser;

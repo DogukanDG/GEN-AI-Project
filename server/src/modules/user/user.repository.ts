@@ -7,9 +7,15 @@ export async function createUser(data: {
   surname: string;
   email: string;
   password: string;
+  role?: string;
 }): Promise<User> {
   try {
-    return await prisma.user.create({ data });
+    return await prisma.user.create({ 
+      data: {
+        ...data,
+        role: data.role || 'normal'
+      }
+    });
   } catch {
     throw new HttpError(500, 'User could not be created');
   }
