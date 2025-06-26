@@ -16,6 +16,7 @@ import ForgotPassword from "../components/ForgotPassword";
 import AppTheme from "../template/AppTheme";
 import ColorModeSelect from "../template/ColorModeSelect";
 import { useNavigate } from "react-router-dom";
+import { authService } from "../services/authService";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -81,23 +82,13 @@ function LoginPage() {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Login failed");
-      }
-
-      const result = await response.json();
-      localStorage.setItem("token", result.token); // JWT'yi localStorage'a kaydet
+      const result = await authService.login({ email, password });
+      authService.storeAuthData(result);
       navigate("/homepage"); // Kullanıcıyı homepage'e yönlendir
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
       setPasswordError(true);
-      setPasswordErrorMessage("Invalid email or password.");
+      setPasswordErrorMessage(error.response?.data?.message || "Invalid email or password.");
     }
   };
 

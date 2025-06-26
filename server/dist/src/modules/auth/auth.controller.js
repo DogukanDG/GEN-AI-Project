@@ -34,16 +34,28 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.login = login;
+exports.register = register;
 const authService = __importStar(require("./auth.service"));
 async function login(req, res, next) {
     const { email, password } = req.body;
     try {
-        const token = await authService.login(email, password);
+        const result = await authService.login(email, password);
         res.status(200).json({
             status: 'success',
-            data: {
-                token,
-            },
+            data: result,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+}
+async function register(req, res, next) {
+    const { name, surname, email, password } = req.body;
+    try {
+        const result = await authService.register({ name, surname, email, password });
+        res.status(201).json({
+            status: 'success',
+            data: result,
         });
     }
     catch (error) {

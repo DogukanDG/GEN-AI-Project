@@ -45,6 +45,7 @@ const errors_1 = require("../../types/errors");
  * @param surname New user's surname
  * @param email New user's email
  * @param password New user's password
+ * @param role New user's role (optional, defaults to 'normal')
  * @returns New user object.
  */
 async function signup(data) {
@@ -56,6 +57,7 @@ async function signup(data) {
     const newUser = await userRepository.createUser({
         ...data,
         password: hashedPassword,
+        role: data.role || 'normal',
     });
     return newUser;
 }

@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.login = login;
+exports.register = register;
 exports.hashPassword = hashPassword;
 exports.verifyPassword = verifyPassword;
 exports.createLoginToken = createLoginToken;
@@ -51,7 +52,7 @@ const SALT_LENGTH = 12;
  * it throws that specific error.
  * @param email User's email
  * @param password User's password
- * @returns A login token
+ * @returns User data with token
  */
 async function login(email, password) {
     const user = await userRepository.findByEmail(email);
@@ -63,7 +64,39 @@ async function login(email, password) {
         throw new errors_1.HttpError(401, 'Password is wrong. Please try again');
     }
     const token = createLoginToken(user.id, user.email);
-    return token;
+    // Return user data without password
+    const { password: _, ...userWithoutPassword } = user;
+    return {
+        user: userWithoutPassword,
+        token,
+    };
+}
+/**
+ * Registers a new user and returns user data with token
+ * @param userData User registration data
+ * @returns User data with token
+ */
+async function register(userData) {
+    // Check if user already exists
+    const existingUser = await userRepository.findByEmail(userData.email);
+    if (existingUser) {
+        throw new errors_1.HttpError(409, 'User with this email already exists');
+    }
+    // Hash password
+    const hashedPassword = await hashPassword(userData.password);
+    // Create user
+    const user = await userRepository.createUser({
+        ...userData,
+        password: hashedPassword,
+    });
+    // Create token
+    const token = createLoginToken(user.id, user.email);
+    // Return user data without password
+    const { password: _, ...userWithoutPassword } = user;
+    return {
+        user: userWithoutPassword,
+        token,
+    };
 }
 async function hashPassword(password) {
     try {

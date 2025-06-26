@@ -24,19 +24,19 @@ export async function createRoom(
 
   try {
     const newRoom = await roomService.createRoom({
-      room_number: room_number,
+      roomNumber: room_number,
       floor: Number(floor),
-      room_type: room_type,
+      roomType: room_type,
       capacity: Number(capacity),
-      area_sqm: Number(area_sqm),
-      chair_count: Number(chair_count),
-      window_count: Number(window_count),
-      has_natural_light: has_natural_light === 'true',
-      has_projector: has_projector === 'true',
-      has_microphone: has_microphone === 'true',
-      has_camera: has_camera === 'true',
-      has_air_conditioner: has_air_conditioner === 'true',
-      has_noise_cancelling: has_noise_cancelling === 'true',
+      areaSqm: Number(area_sqm),
+      windowCount: Number(window_count),
+      hasNaturalLight: has_natural_light === 'true',
+      hasProjector: has_projector === 'true',
+      hasMicrophone: has_microphone === 'true',
+      hasCamera: has_camera === 'true',
+      hasAirConditioner: has_air_conditioner === 'true',
+      hasNoiseCancelling: has_noise_cancelling === 'true',
+      userId: null,
     });
 
     res.status(201).json({

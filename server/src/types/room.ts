@@ -1,7 +1,7 @@
-import { Room } from '@prisma/client';
+import { RoomFeature } from '@prisma/client';
 
 export type CreateRoomInput = Omit<
-  Room,
-  'room_id' | 'created_at' | 'updated_at'
+  RoomFeature,
+  'id' | 'createdAt' | 'updatedAt'
 >;
 export type UpdateRoomInput = Partial<CreateRoomInput>;

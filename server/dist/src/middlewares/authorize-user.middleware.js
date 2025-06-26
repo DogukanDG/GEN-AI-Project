@@ -22,6 +22,7 @@ const authorizeUser = (req, res, next) => {
         throw new errors_1.HttpError(401, 'User is not authenticated');
     }
     req.userId = decodedData.id;
+    req.user = decodedData;
     next();
 };
 exports.authorizeUser = authorizeUser;
