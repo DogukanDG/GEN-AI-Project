@@ -10,27 +10,14 @@ export async function createUser(data: {
   role?: string;
 }): Promise<User> {
   try {
-    return await prisma.user.create({
+    return await prisma.user.create({ 
       data: {
         ...data,
-        role: data.role || 'normal',
-      },
+        role: data.role || 'normal'
+      }
     });
   } catch {
     throw new HttpError(500, 'User could not be created');
-  }
-}
-
-export async function assignAdminRole(id: number) {
-  try {
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        role: 'admin',
-      },
-    });
-  } catch (error) {
-    throw new HttpError(500, "User's role could not be updated");
   }
 }
 

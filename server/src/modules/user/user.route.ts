@@ -2,7 +2,6 @@ import express from 'express';
 import { body } from 'express-validator';
 import { validateRequest } from '../../middlewares/request-validator.middleware';
 import * as userController from './user.controller';
-import { authorizeUser } from '../../middlewares/authorize-user.middleware';
 
 const router = express.Router();
 
@@ -20,13 +19,6 @@ router.post(
   ],
   validateRequest,
   userController.signup
-);
-
-router.patch(
-  '/role',
-  validateRequest,
-  authorizeUser,
-  userController.assignAdminRole
 );
 
 export default router;
