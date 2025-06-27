@@ -14,7 +14,7 @@ export async function signup(
       surname,
       email,
       password,
-      role: role || 'normal', // Default to 'normal' if role is not provided
+      role: role || 'normal',
     });
 
     res.status(201).json({
@@ -22,6 +22,25 @@ export async function signup(
       data: {
         user: newUser,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function assignAdminRole(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const userId = req.userId;
+
+  try {
+    await userService.assignAdminRole(userId);
+
+    res.status(201).json({
+      status: 'success',
+      data: null,
     });
   } catch (error) {
     next(error);

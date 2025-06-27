@@ -35,6 +35,10 @@ export async function signup(data: {
   return newUser;
 }
 
+export async function assignAdminRole(userId: number) {
+  await userRepository.assignAdminRole(userId);
+}
+
 export async function isEmailRegistered(email: string): Promise<boolean> {
   try {
     const user = await userRepository.findByEmail(email);

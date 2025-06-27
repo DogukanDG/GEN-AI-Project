@@ -20,19 +20,19 @@ class GeminiService {
   private model: any;
 
   constructor() {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = 'AIzaSyDCOgQTMHGHe4PqGWAUobLpP1fcVgRsri4';
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not configured');
     }
-    
+
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 
   async parseRoomRequest(userPrompt: string): Promise<RoomRequirements> {
     console.log('=== Gemini parseRoomRequest started ===');
     console.log('User prompt:', userPrompt);
-    
+
     const prompt = `
     You are an AI assistant for a room booking system. Parse the following user request and extract the room requirements in JSON format.
 
@@ -59,18 +59,21 @@ class GeminiService {
       console.log('Calling Gemini API...');
       const result = await this.model.generateContent(prompt);
       console.log('Gemini API response received');
-      
+
       const response = await result.response;
       const text = response.text();
       console.log('Raw Gemini response:', text);
-      
+
       // Clean the response and parse JSON
-      const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const cleanedText = text
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
       console.log('Cleaned response:', cleanedText);
-      
+
       const parsedRequirements = JSON.parse(cleanedText);
       console.log('Parsed requirements:', parsedRequirements);
-      
+
       return parsedRequirements;
     } catch (error) {
       console.error('Error parsing room request with Gemini:', error);
@@ -78,7 +81,10 @@ class GeminiService {
     }
   }
 
-  async rankRooms(requirements: RoomRequirements, availableRooms: any[]): Promise<any[]> {
+  async rankRooms(
+    requirements: RoomRequirements,
+    availableRooms: any[]
+  ): Promise<any[]> {
     const roomsData = JSON.stringify(availableRooms, null, 2);
     const requirementsData = JSON.stringify(requirements, null, 2);
 
@@ -114,11 +120,14 @@ class GeminiService {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
       // Clean the response and parse JSON
-      const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const cleanedText = text
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
       const rankedRooms = JSON.parse(cleanedText);
-      
+
       return rankedRooms;
     } catch (error) {
       console.error('Error ranking rooms with Gemini:', error);
@@ -133,7 +142,11 @@ class GeminiService {
     Room: ${reservation.roomNumber}
     User: ${reservation.userName}
     Date: ${new Date(reservation.startDatetime).toLocaleDateString()}
-    Time: ${new Date(reservation.startDatetime).toLocaleTimeString()} - ${new Date(reservation.endDatetime).toLocaleTimeString()}
+    Time: ${new Date(
+      reservation.startDatetime
+    ).toLocaleTimeString()} - ${new Date(
+      reservation.endDatetime
+    ).toLocaleTimeString()}
     Purpose: ${reservation.purpose || 'Not specified'}
     
     Make it professional but friendly, and include any important details about the room.
