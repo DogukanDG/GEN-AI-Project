@@ -1,6 +1,9 @@
 import React from "react";
 import { AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText, CssBaseline, Box, Divider, useTheme, useMediaQuery } from "@mui/material";
+import { Home as HomeIcon, CalendarToday as BookingsIcon, ExitToApp as LogoutIcon } from "@mui/icons-material";
 import MenuIcon from "@mui/icons-material/Menu";
+import { useNavigate } from "react-router-dom";
+import { authService } from "../services/authService";
 import AppTheme from "../template/AppTheme";
 import ColorModeIconDropdown from "../template/ColorModeIconDropdown";
 
@@ -14,10 +17,27 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+  };
+
+  const menuItems = [
+    { text: 'Ana Sayfa', path: '/homepage', icon: <HomeIcon /> },
+    { text: 'Rezervasyonlarım', path: '/mybookings', icon: <BookingsIcon /> },
+  ];
 
   const drawer = (
     <div>
@@ -26,21 +46,31 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
           variant="h6"
           noWrap
         >
-          My App
+          Oda Rezervasyon
         </Typography>
       </Toolbar>
       <Divider />
       <List>
-        {["Home", "About", "Contact"].map((text) => (
+        {menuItems.map((item) => (
           <ListItem
-            key={text}
+            key={item.text}
             disablePadding
           >
-            <ListItemButton>
-              <ListItemText primary={text} />
+            <ListItemButton onClick={() => handleNavigation(item.path)}>
+              {item.icon}
+              <ListItemText primary={item.text} sx={{ ml: 1 }} />
             </ListItemButton>
           </ListItem>
         ))}
+      </List>
+      <Divider />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={handleLogout}>
+            <LogoutIcon />
+            <ListItemText primary="Çıkış Yap" sx={{ ml: 1 }} />
+          </ListItemButton>
+        </ListItem>
       </List>
       <ColorModeIconDropdown></ColorModeIconDropdown>
     </div>

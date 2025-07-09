@@ -1,4 +1,4 @@
-import { Room } from '@prisma/client';
+import { RoomFeature } from '@prisma/client';
 import * as roomRepository from './room.repository';
 import { CreateRoomInput } from '../../types/room';
 import { HttpError } from '../../types/errors';
@@ -8,7 +8,7 @@ import { HttpError } from '../../types/errors';
  * @returns Created room object
  */
 export async function createRoom(data: CreateRoomInput) {
-  const isRoomExist = await roomRepository.findByRoomNumber(data.room_number);
+  const isRoomExist = await roomRepository.findByRoomNumber(data.roomNumber);
   if (isRoomExist) {
     throw new HttpError(409, 'Room already exist');
   }
@@ -28,7 +28,7 @@ export async function deleteRoom(roomId: number) {
  * Finds a room by its id.
  * @returns Room object
  */
-export async function findById(roomId: number): Promise<Room | null> {
+export async function findById(roomId: number): Promise<RoomFeature | null> {
   const room = await roomRepository.findById(roomId);
   return room ? room : null;
 }

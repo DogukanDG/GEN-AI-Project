@@ -45,4 +45,10 @@ router.post('/login', [
     (0, express_validator_1.body)('email').trim().notEmpty().isEmail(),
     (0, express_validator_1.body)('password').trim().notEmpty(),
 ], request_validator_middleware_1.validateRequest, authenticationController.login);
+router.post('/register', [
+    (0, express_validator_1.body)('name').trim().notEmpty(),
+    (0, express_validator_1.body)('surname').trim().notEmpty(),
+    (0, express_validator_1.body)('email').trim().notEmpty().isEmail(),
+    (0, express_validator_1.body)('password').trim().isLength({ min: 6 }),
+], request_validator_middleware_1.validateRequest, authenticationController.register);
 exports.default = router;

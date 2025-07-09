@@ -1,86 +1,72 @@
 import prisma from '../../configs/database';
-import { Room } from '@prisma/client';
-import { CreateRoomInput, UpdateRoomInput } from '../../types/room';
+import { RoomFeature } from '@prisma/client';
 import { HttpError } from '../../types/errors';
 
-export async function createRoom(data: CreateRoomInput): Promise<Room> {
+export async function createRoom(data: any): Promise<RoomFeature> {
   try {
-    return await prisma.room.create({ data });
-  } catch (e) {
-    console.log(e);
-
+    return await prisma.roomFeature.create({ data });
+  } catch (error) {
+    console.error('Database error in createRoom:', error);
     throw new HttpError(500, 'Room could not be created');
   }
 }
 
-export async function findByRoomNumber(
-  roomNumber: string
-): Promise<Room | null> {
+/**
+ * Finds a room by its room number
+ * @param roomNumber The room number to search for
+ * @returns The room if found, null otherwise
+ */
+export async function findByRoomNumber(roomNumber: string): Promise<RoomFeature | null> {
   try {
-    return await prisma.room.findUnique({ where: { room_number: roomNumber } });
-  } catch {
-    throw new HttpError(500, 'Room could not be fetched');
+    return await prisma.roomFeature.findUnique({ where: { roomNumber } });
+  } catch (error) {
+    throw new HttpError(500, 'Data could not be fetched');
   }
 }
 
-export async function findById(roomId: number): Promise<Room | null> {
+export async function findById(roomId: number): Promise<RoomFeature | null> {
   try {
-    return await prisma.room.findUnique({ where: { room_id: roomId } });
-  } catch {
-    throw new HttpError(500, 'Room could not be fetched');
+    return await prisma.roomFeature.findUnique({ where: { id: roomId } });
+  } catch (error) {
+    throw new HttpError(500, 'Data could not be fetched');
   }
 }
 
-export async function findAllRooms(): Promise<Room[]> {
+export async function findAll(): Promise<RoomFeature[]> {
   try {
-    return await prisma.room.findMany();
-  } catch {
-    throw new HttpError(500, 'Rooms could not be fetched');
+    return await prisma.roomFeature.findMany();
+  } catch (error) {
+    throw new HttpError(500, 'Data could not be fetched');
   }
 }
 
-export async function updateRoom(
-  roomId: number,
-  data: UpdateRoomInput
-): Promise<Room> {
+export async function updateRoom(roomId: number, data: any): Promise<RoomFeature> {
   try {
-    return await prisma.room.update({
-      where: { room_id: roomId },
-      data,
+    return await prisma.roomFeature.update({
+      where: { id: roomId },
+      data
     });
-  } catch {
+  } catch (error) {
     throw new HttpError(500, 'Room could not be updated');
   }
 }
 
-export async function deleteRoom(roomId: number): Promise<Room> {
+export async function deleteRoom(roomId: number): Promise<RoomFeature> {
   try {
-    return await prisma.room.delete({
-      where: { room_id: roomId },
+    return await prisma.roomFeature.delete({
+      where: { id: roomId }
     });
-  } catch {
+  } catch (error) {
     throw new HttpError(500, 'Room could not be deleted');
   }
 }
 
-export async function findAvailableRooms(
-  startDatetime: Date,
-  endDatetime: Date
-): Promise<Room[]> {
+export async function searchRooms(filters: any): Promise<RoomFeature[]> {
   try {
-    return await prisma.room.findMany({
-      where: {
-        reservations: {
-          none: {
-            AND: [
-              { start_datetime: { lt: endDatetime } },
-              { end_datetime: { gt: startDatetime } },
-            ],
-          },
-        },
-      },
+    return await prisma.roomFeature.findMany({
+      where: filters
     });
-  } catch {
-    throw new HttpError(500, 'Available rooms could not be fetched');
+  } catch (error) {
+    throw new HttpError(500, 'Data could not be fetched');
   }
 }

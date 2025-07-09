@@ -46,5 +46,9 @@ router.post('/signup', [
     (0, express_validator_1.body)('surname').trim().notEmpty(),
     (0, express_validator_1.body)('email').trim().notEmpty().isEmail(),
     (0, express_validator_1.body)('password').trim().notEmpty().isLength({ min: 6 }),
+    (0, express_validator_1.body)('role')
+        .optional()
+        .isIn(['normal', 'admin'])
+        .withMessage('Role must be either "normal" or "admin"'),
 ], request_validator_middleware_1.validateRequest, userController.signup);
 exports.default = router;

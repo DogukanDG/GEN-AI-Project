@@ -9,7 +9,12 @@ const database_1 = __importDefault(require("../../configs/database"));
 const errors_1 = require("../../types/errors");
 async function createUser(data) {
     try {
-        return await database_1.default.user.create({ data });
+        return await database_1.default.user.create({
+            data: {
+                ...data,
+                role: data.role || 'normal'
+            }
+        });
     }
     catch {
         throw new errors_1.HttpError(500, 'User could not be created');

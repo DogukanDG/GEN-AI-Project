@@ -17,26 +17,46 @@ model User {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   roomFeatures RoomFeature[]
+  reservations Reservation[]
 }
 
 model RoomFeature {
-  id                   Int      @id @default(autoincrement())
-  roomNumber           String   @unique @map("room_number")
+  id                   Int           @id @default(autoincrement())
+  roomNumber           String        @unique @map("room_number")
   floor                Int
-  roomType             String   @map("room_type")
+  roomType             String        @map("room_type")
   capacity             Int
-  areaSqm              Float    @map("area_sqm")
-  windowCount          Int      @map("window_count")
-  hasNaturalLight      Boolean  @map("has_natural_light")
-  hasProjector         Boolean  @map("has_projector")
-  hasMicrophone        Boolean  @map("has_microphone")
-  hasCamera            Boolean  @map("has_camera")
-  hasAirConditioner    Boolean  @map("has_air_conditioner")
-  hasNoiseCancelling   Boolean  @map("has_noise_cancelling")
-  userId               Int?     @map("user_id")
-  user                 User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
+  areaSqm              Float         @map("area_sqm")
+  windowCount          Int           @map("window_count")
+  hasNaturalLight      Boolean       @map("has_natural_light")
+  hasProjector         Boolean       @map("has_projector")
+  hasMicrophone        Boolean       @map("has_microphone")
+  hasCamera            Boolean       @map("has_camera")
+  hasAirConditioner    Boolean       @map("has_air_conditioner")
+  hasNoiseCancelling   Boolean       @map("has_noise_cancelling")
+  userId               Int?          @map("user_id")
+  user                 User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reservations         Reservation[]
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
 
   @@map("room_features")
+}
+
+model Reservation {
+  id              Int      @id @default(autoincrement())
+  roomNumber      String   @map("room_number")
+  userName        String   @map("user_name")
+  userEmail       String   @map("user_email")
+  startDatetime   DateTime @map("start_datetime")
+  endDatetime     DateTime @map("end_datetime")
+  bookingStatus   String   @default("confirmed") @map("booking_status")
+  purpose         String?
+  userId          Int?     @map("user_id")
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  roomFeature     RoomFeature @relation(fields: [roomNumber], references: [roomNumber], onDelete: Cascade)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("reservations")
 }

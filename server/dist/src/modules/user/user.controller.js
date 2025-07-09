@@ -36,13 +36,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.signup = signup;
 const userService = __importStar(require("./user.service"));
 async function signup(req, res, next) {
-    const { name, surname, email, password } = req.body;
+    const { name, surname, email, password, role } = req.body;
     try {
         const newUser = await userService.signup({
             name,
             surname,
             email,
             password,
+            role: role || 'normal', // Default to 'normal' if role is not provided
         });
         res.status(201).json({
             status: 'success',

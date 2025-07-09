@@ -15,4 +15,16 @@ router.post(
   authenticationController.login
 );
 
+router.post(
+  '/register',
+  [
+    body('name').trim().notEmpty(),
+    body('surname').trim().notEmpty(),
+    body('email').trim().notEmpty().isEmail(),
+    body('password').trim().isLength({ min: 6 }),
+  ],
+  validateRequest,
+  authenticationController.register
+);
+
 export default router;

@@ -23,6 +23,8 @@ const database_1 = __importDefault(require("./src/configs/database"));
  */
 const auth_route_1 = __importDefault(require("./src/modules/auth/auth.route"));
 const user_route_1 = __importDefault(require("./src/modules/user/user.route"));
+const roomFeature_route_1 = __importDefault(require("./src/modules/roomFeature/roomFeature.route"));
+const reservation_route_1 = __importDefault(require("./src/modules/reservation/reservation.route"));
 const error_handler_middleware_1 = require("./src/middlewares/error-handler.middleware");
 const app = (0, express_1.default)();
 const limiter = (0, express_rate_limit_1.default)({
@@ -53,6 +55,8 @@ app.use((0, morgan_1.default)('tiny', { stream: accessLogStream }));
  */
 app.use('/api/v1/auth', auth_route_1.default);
 app.use('/api/v1/users', user_route_1.default);
+app.use('/api/v1/room-features', roomFeature_route_1.default);
+app.use('/api/v1/reservations', reservation_route_1.default);
 app.use(error_handler_middleware_1.handleError);
 // Health check endpoint
 app.get('/health', async (req, res) => {
