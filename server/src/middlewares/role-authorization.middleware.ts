@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpError } from '../types/errors';
+import prisma from '../configs/database';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -22,13 +23,9 @@ export const requireAdmin = async (
       throw new HttpError(401, 'User not authenticated');
     }
 
-    // Get user from database to check role
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-    
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, role: true }
+      select: { id: true, role: true },
     });
 
     if (!user) {
@@ -41,7 +38,7 @@ export const requireAdmin = async (
 
     // Store user role in request for potential future use
     req.userRole = user.role;
-    
+
     await prisma.$disconnect();
     next();
   } catch (error) {
@@ -67,10 +64,10 @@ export const setUserRole = async (
     // Get user from database to check role
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
-    
+
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, role: true }
+      select: { id: true, role: true },
     });
 
     if (!user) {
@@ -79,7 +76,7 @@ export const setUserRole = async (
 
     // Store user role in request
     req.userRole = user.role;
-    
+
     await prisma.$disconnect();
     next();
   } catch (error) {
