@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 export interface RoomSearchRequest {
   prompt: string;
@@ -12,7 +12,7 @@ export interface RoomRequirements {
   hasCamera?: boolean;
   hasNoiseCancelling?: boolean;
   hasNaturalLight?: boolean;
-  roomType?: 'classroom' | 'study_room';
+  roomType?: "classroom" | "study_room";
   date?: string;
   startTime?: string;
   endTime?: string;
@@ -96,27 +96,53 @@ export interface CheckAvailabilityRequest {
 }
 
 export const roomService = {
+  // Get reserved time slots for a room and date
+  getReservedSlots: async ({
+    roomNumber,
+    date,
+  }: {
+    roomNumber: string;
+    date: string;
+  }): Promise<string[]> => {
+    const response = await api.get(
+      `/reservations/reserved-slots?roomNumber=${encodeURIComponent(
+        roomNumber
+      )}&date=${encodeURIComponent(date)}`
+    );
+    return response.data.data;
+  },
   // AI-powered room search
-  searchRoomsWithAI: async (request: RoomSearchRequest): Promise<RoomSearchResponse> => {
-    const response = await api.post('/reservations/search-ai', request);
+  searchRoomsWithAI: async (
+    request: RoomSearchRequest
+  ): Promise<RoomSearchResponse> => {
+    const response = await api.post("/reservations/search-ai", request);
     return response.data.data;
   },
 
   // Check room availability
-  checkAvailability: async (request: CheckAvailabilityRequest): Promise<boolean> => {
-    const response = await api.post('/reservations/check-availability', request);
+  checkAvailability: async (
+    request: CheckAvailabilityRequest
+  ): Promise<boolean> => {
+    const response = await api.post(
+      "/reservations/check-availability",
+      request
+    );
     return response.data.data.isAvailable;
   },
 
   // Create reservation
-  createReservation: async (request: CreateReservationRequest): Promise<{ reservation: Reservation; confirmationMessage: string }> => {
-    const response = await api.post('/reservations', request);
+  createReservation: async (
+    request: CreateReservationRequest
+  ): Promise<{ reservation: Reservation; confirmationMessage: string }> => {
+    const response = await api.post("/reservations", request);
     return response.data.data;
   },
 
   // Get user reservations
   getUserReservations: async (userEmail: string): Promise<Reservation[]> => {
-    const response = await api.get(`/reservations/user/${encodeURIComponent(userEmail)}`);
+    const response = await api.get(
+      `/reservations/user/${encodeURIComponent(userEmail)}`
+    );
     return response.data.data;
   },
 
@@ -146,7 +172,9 @@ export const roomService = {
 
   // Get upcoming reservations
   getUpcomingReservations: async (limit?: number): Promise<Reservation[]> => {
-    const response = await api.get(`/reservations/upcoming${limit ? `?limit=${limit}` : ''}`);
+    const response = await api.get(
+      `/reservations/upcoming${limit ? `?limit=${limit}` : ""}`
+    );
     return response.data.data;
-  }
+  },
 };

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import dummyResponse from "../../../server/src/data/dummy_response.json";
 import {
   Box,
   TextField,
@@ -14,9 +15,9 @@ import {
   Card,
   CardContent,
   Alert,
-  Snackbar
+  Snackbar,
 } from "@mui/material";
-import { 
+import {
   Room as RoomIcon,
   People as PeopleIcon,
   Computer as ProjectorIcon,
@@ -24,14 +25,14 @@ import {
   Mic as MicIcon,
   Camera as CameraIcon,
   VolumeOff as QuietIcon,
-  WbSunny as LightIcon
+  WbSunny as LightIcon,
 } from "@mui/icons-material";
 import NavBar from "../components/NavBar";
 import { roomService } from "../services/roomService";
 import type { RoomMatch, RoomSearchResponse } from "../services/roomService";
 import { authService } from "../services/authService";
 
-type Message = 
+type Message =
   | { role: "user"; content: string }
   | { role: "assistant"; content: string }
   | { role: "assistant-rooms"; content: string; data: RoomSearchResponse };
@@ -47,24 +48,82 @@ function HomePage() {
     userEmail: "",
     startDatetime: "",
     endDatetime: "",
-    purpose: ""
+    purpose: "",
   });
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error",
+  });
+  const [reservedSlots, setReservedSlots] = useState<string[]>([]);
+  const timeSlotPeriods = [
+    { label: "08:00 - 10:00", start: "08:00", end: "10:00" },
+    { label: "10:00 - 12:00", start: "10:00", end: "12:00" },
+    { label: "12:00 - 14:00", start: "12:00", end: "14:00" },
+    { label: "14:00 - 16:00", start: "14:00", end: "16:00" },
+    { label: "16:00 - 18:00", start: "16:00", end: "18:00" },
+    { label: "18:00 - 20:00", start: "18:00", end: "20:00" },
+  ];
 
+  const pickerFieldSx = {
+    // match the dark background of the select box
+    "& .MuiInputBase-root": {
+      minHeight: 56, // same default height as an MUI “outlined” TextField
+    },
+    // text, icon & label colours
+    "& .MuiInputBase-input, & .MuiSvgIcon-root": { color: "#fff" },
+    "& .MuiInputLabel-root": { color: "#ccc" },
+    // optional – keep the dark border theme
+    "& fieldset": { borderColor: "#333" },
+    "&:hover fieldset": { borderColor: "#555" },
+  };
+
+  function fixNulls(obj: any) {
+    if (Array.isArray(obj)) {
+      return obj.map(fixNulls);
+    } else if (obj && typeof obj === "object") {
+      const newObj: any = {};
+      for (const key in obj) {
+        if (obj[key] === null) {
+          newObj[key] = undefined;
+        } else {
+          newObj[key] = fixNulls(obj[key]);
+        }
+      }
+      return newObj;
+    }
+    return obj;
+  }
   useEffect(() => {
     // Get user info for pre-filling
+    setMessages([
+      {
+        role: "assistant-rooms",
+        content: dummyResponse.message,
+        data: dummyResponse,
+      },
+    ]);
     const user = authService.getStoredUser();
     if (user) {
-      setBookingDetails(prev => ({
+      setBookingDetails((prev) => ({
         ...prev,
         userName: `${user.name} ${user.surname}`,
-        userEmail: user.email
+        userEmail: user.email,
       }));
     }
   }, []);
 
-  const handleRoomBooking = (room: RoomMatch) => {
+  const handleRoomBooking = (room: RoomMatch, requirements: any) => {
     setSelectedRoom(room);
+
+    setBookingDetails((prev) => ({
+      ...prev,
+      startDatetime: requirements.date || "",
+      startTime: requirements.startTime || "",
+      endTime: requirements.endTime || "",
+      purpose: requirements.purpose || "",
+    }));
+
     setBookingDialogOpen(true);
   };
 
@@ -79,13 +138,13 @@ function HomePage() {
         userEmail: bookingDetails.userEmail,
         startDatetime: bookingDetails.startDatetime,
         endDatetime: bookingDetails.endDatetime,
-        purpose: bookingDetails.purpose
+        purpose: bookingDetails.purpose,
       });
 
       setSnackbar({
         open: true,
         message: result.confirmationMessage,
-        severity: "success"
+        severity: "success",
       });
 
       setBookingDialogOpen(false);
@@ -93,8 +152,10 @@ function HomePage() {
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || "Rezervasyon oluşturulurken hata oluştu",
-        severity: "error"
+        message:
+          error.response?.data?.message ||
+          "Rezervasyon oluşturulurken hata oluştu",
+        severity: "error",
       });
     } finally {
       setLoading(false);
@@ -109,38 +170,97 @@ function HomePage() {
     setLoading(true);
 
     // Show user message immediately
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
 
     try {
       const result = await roomService.searchRoomsWithAI({ prompt });
-      
+
       const assistantMessage: Message = {
         role: "assistant-rooms",
         content: result.message,
-        data: result
+        data: result,
       };
+      if (result.requirements?.date) {
+        setBookingDetails((prev) => ({
+          ...prev,
+          startDatetime: result.requirements.date || "",
+          startTime: result.requirements.startTime || "",
+          endTime: result.requirements.endTime || "",
+        }));
+      } else {
+        setBookingDetails((prev) => ({
+          ...prev,
+          startDatetime: "",
+        }));
+      }
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
       const errorMessage: Message = {
         role: "assistant",
-        content: error.response?.data?.message || "Arama sırasında bir hata oluştu. Lütfen tekrar deneyin."
+        content:
+          error.response?.data?.message ||
+          "Arama sırasında bir hata oluştu. Lütfen tekrar deneyin.",
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDateChange = async (date: Date | null) => {
+    setBookingDetails((prev) => ({
+      ...prev,
+      startDatetime: date ? date.toISOString().split("T")[0] : "",
+    }));
+    if (selectedRoom && date) {
+      const reserved = await roomService.getReservedSlots({
+        roomNumber: selectedRoom.roomNumber,
+        date: date.toISOString().split("T")[0],
+      });
+      setReservedSlots(reserved);
+      console.log("Reserved slots:", reserved);
+    } else {
+      setReservedSlots([]);
+    }
+  };
   const renderRoomFeatures = (room: RoomMatch["room"]) => {
     const features = [];
-    
-    if (room.hasProjector) features.push(<Chip key="projector" icon={<ProjectorIcon />} label="Projektör" size="small" />);
-    if (room.hasAirConditioner) features.push(<Chip key="ac" icon={<AirIcon />} label="Klima" size="small" />);
-    if (room.hasMicrophone) features.push(<Chip key="mic" icon={<MicIcon />} label="Mikrofon" size="small" />);
-    if (room.hasCamera) features.push(<Chip key="camera" icon={<CameraIcon />} label="Kamera" size="small" />);
-    if (room.hasNoiseCancelling) features.push(<Chip key="quiet" icon={<QuietIcon />} label="Sessiz" size="small" />);
-    if (room.hasNaturalLight) features.push(<Chip key="light" icon={<LightIcon />} label="Doğal Işık" size="small" />);
+
+    if (room.hasProjector)
+      features.push(
+        <Chip
+          key="projector"
+          icon={<ProjectorIcon />}
+          label="Projektör"
+          size="small"
+        />
+      );
+    if (room.hasAirConditioner)
+      features.push(
+        <Chip key="ac" icon={<AirIcon />} label="Klima" size="small" />
+      );
+    if (room.hasMicrophone)
+      features.push(
+        <Chip key="mic" icon={<MicIcon />} label="Mikrofon" size="small" />
+      );
+    if (room.hasCamera)
+      features.push(
+        <Chip key="camera" icon={<CameraIcon />} label="Kamera" size="small" />
+      );
+    if (room.hasNoiseCancelling)
+      features.push(
+        <Chip key="quiet" icon={<QuietIcon />} label="Sessiz" size="small" />
+      );
+    if (room.hasNaturalLight)
+      features.push(
+        <Chip
+          key="light"
+          icon={<LightIcon />}
+          label="Doğal Işık"
+          size="small"
+        />
+      );
 
     return features;
   };
@@ -174,84 +294,174 @@ function HomePage() {
                     alignSelf: "flex-start",
                     backgroundColor: "#f0f0f0",
                     maxWidth: "90%",
-                    overflow: 'hidden',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
+                    overflow: "hidden",
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
                   }}
                 >
-                  <Typography sx={{ 
-                    color: "#000", 
-                    mb: 2, 
-                    fontWeight: "bold",
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                    whiteSpace: 'pre-wrap'
-                  }}>
+                  <Typography
+                    sx={{
+                      color: "#000",
+                      mb: 2,
+                      fontWeight: "bold",
+                      wordBreak: "break-word",
+                      overflowWrap: "break-word",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
                     {msg.content}
                   </Typography>
 
                   {msg.data.rooms.length > 0 ? (
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    >
                       {msg.data.rooms.map((room, roomIndex) => (
-                        <Card key={roomIndex} sx={{ width: "100%" }}>
+                        <Card
+                          key={roomIndex}
+                          sx={{ width: "100%", position: "relative" }}
+                        >
                           <CardContent>
-                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                              <Typography variant="h6" component="h3" sx={{
-                                wordBreak: 'break-word',
-                                overflowWrap: 'break-word',
-                              }}>
+                            {/* Sadece ilk oda için Best Match etiketi göster */}
+                            {roomIndex === 0 && (
+                              <Box
+                                sx={{
+                                  position: "absolute",
+                                  top: 12,
+                                  right: 16,
+                                  background: "#19d929ff",
+                                  color: "#fff",
+                                  px: 1.5,
+                                  py: 0.5,
+                                  borderRadius: "8px",
+                                  fontSize: "0.85rem",
+                                  fontWeight: 500,
+                                  zIndex: 2,
+                                  boxShadow: 1,
+                                }}
+                              >
+                                Best Match
+                              </Box>
+                            )}
+
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                mb: 2,
+                              }}
+                            >
+                              <Typography
+                                variant="h6"
+                                component="h3"
+                                sx={{
+                                  wordBreak: "break-word",
+                                  overflowWrap: "break-word",
+                                }}
+                              >
                                 {room.roomNumber}
                               </Typography>
                               <Chip
                                 label={`${room.matchScore}% Uyumlu`}
-                                color={room.matchScore >= 80 ? "success" : room.matchScore >= 60 ? "warning" : "default"}
+                                color={
+                                  room.matchScore >= 80
+                                    ? "success"
+                                    : room.matchScore >= 60
+                                    ? "warning"
+                                    : "default"
+                                }
                                 size="small"
                                 sx={{
-                                  maxWidth: '150px',
-                                  '& .MuiChip-label': {
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }
+                                  maxWidth: "150px",
+                                  "& .MuiChip-label": {
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  },
                                 }}
                               />
                             </Box>
 
                             <Box sx={{ mb: 2 }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                <PeopleIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "middle" }} />
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 1 }}
+                              >
+                                <PeopleIcon
+                                  sx={{
+                                    fontSize: 16,
+                                    mr: 0.5,
+                                    verticalAlign: "middle",
+                                  }}
+                                />
                                 Kapasite: {room.room.capacity} kişi
                               </Typography>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                <RoomIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: "middle" }} />
-                                Tür: {room.room.roomType === "classroom" ? "Sınıf" : "Çalışma Odası"}
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 1 }}
+                              >
+                                <RoomIcon
+                                  sx={{
+                                    fontSize: 16,
+                                    mr: 0.5,
+                                    verticalAlign: "middle",
+                                  }}
+                                />
+                                Tür:{" "}
+                                {room.room.roomType === "classroom"
+                                  ? "Sınıf"
+                                  : "Çalışma Odası"}
                               </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Kat: {room.room.floor}, Alan: {room.room.areaSqm}m²
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Kat: {room.room.floor}, Alan:{" "}
+                                {room.room.areaSqm}m²
                               </Typography>
                             </Box>
 
                             <Box sx={{ mb: 2 }}>
-                              <Typography variant="body2" sx={{ mb: 1, fontWeight: "medium" }}>
+                              <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: "medium" }}
+                              >
                                 Özellikler:
                               </Typography>
-                              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 0.5,
+                                }}
+                              >
                                 {renderRoomFeatures(room.room)}
                               </Box>
                             </Box>
 
                             <Box sx={{ mb: 2 }}>
-                              <Typography variant="body2" sx={{ mb: 1, fontWeight: "medium" }}>
+                              <Typography
+                                variant="body2"
+                                sx={{ mb: 1, fontWeight: "medium" }}
+                              >
                                 Uyum Nedenleri:
                               </Typography>
                               {room.matchReasons.map((reason, reasonIndex) => (
-                                <Typography key={reasonIndex} variant="body2" color="text.secondary" sx={{ 
-                                  fontSize: "0.85rem",
-                                  wordBreak: 'break-word',
-                                  overflowWrap: 'break-word',
-                                  whiteSpace: 'pre-wrap',
-                                  mb: 0.5
-                                }}>
+                                <Typography
+                                  key={reasonIndex}
+                                  variant="body2"
+                                  color="text.secondary"
+                                  sx={{
+                                    fontSize: "0.85rem",
+                                    wordBreak: "break-word",
+                                    overflowWrap: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                    mb: 0.5,
+                                  }}
+                                >
                                   • {reason}
                                 </Typography>
                               ))}
@@ -259,8 +469,10 @@ function HomePage() {
 
                             <Button
                               fullWidth
-                              variant="contained"
-                              onClick={() => handleRoomBooking(room)}
+                              variant="outlined"
+                              onClick={() =>
+                                handleRoomBooking(room, msg.data.requirements)
+                              }
                               disabled={loading}
                             >
                               Rezervasyon Yap
@@ -271,7 +483,8 @@ function HomePage() {
                     </Box>
                   ) : (
                     <Alert severity="info">
-                      Aradığınız kriterlere uygun oda bulunamadı. Lütfen farklı kriterler ile arama yapın.
+                      Aradığınız kriterlere uygun oda bulunamadı. Lütfen farklı
+                      kriterler ile arama yapın.
                     </Alert>
                   )}
                 </Paper>
@@ -285,18 +498,21 @@ function HomePage() {
                     mb: 1,
                     maxWidth: "75%",
                     alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                    backgroundColor: msg.role === "user" ? "#1976d2" : "#ffffff",
+                    backgroundColor:
+                      msg.role === "user" ? "#1976d2" : "#ffffff",
                     color: msg.role === "user" ? "#fff" : "#000",
-                    overflow: 'hidden',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
+                    overflow: "hidden",
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
                   }}
                 >
-                  <Typography sx={{
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                    whiteSpace: 'pre-wrap'
-                  }}>
+                  <Typography
+                    sx={{
+                      wordBreak: "break-word",
+                      overflowWrap: "break-word",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
                     {msg.content}
                   </Typography>
                 </Paper>
@@ -322,6 +538,7 @@ function HomePage() {
             fullWidth
             multiline
             minRows={2}
+            inputProps={{ maxLength: 275 }}
             maxRows={6}
             placeholder="Oda ihtiyacınızı doğal dilde yazın... Örn: '5 kişi için sunum odası lazım, projektör ve klima olsun'"
             variant="outlined"
@@ -334,30 +551,59 @@ function HomePage() {
               }
             }}
             sx={{
-              '& .MuiInputBase-root': {
-                overflow: 'hidden',
-                wordBreak: 'break-word',
-                overflowWrap: 'break-word',
-                whiteSpace: 'pre-wrap',
+              "& .MuiInputBase-root": {
+                minHeight: 60,
+                overflow: "auto",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "pre-wrap",
+                alignItems: "flex-start", // Yazı yukarıdan başlasın
+                // Standart padding
               },
-              '& .MuiInputBase-input': {
-                wordBreak: 'break-word',
-                overflowWrap: 'break-word',
-                whiteSpace: 'pre-wrap',
-                resize: 'none',
+              "& .MuiInputBase-input": {
+                minHeight: 60,
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "pre-wrap",
+                resize: "none",
+                verticalAlign: "top", // Yazı yukarıdan başlasın
+                padding: 0,
               },
-              '& .MuiOutlinedInput-root': {
-                overflow: 'hidden',
-              }
+              "& .MuiOutlinedInput-root": {
+                overflow: "hidden",
+              },
             }}
           />
           <Button
             variant="contained"
             onClick={handleSubmit}
             disabled={loading}
-            sx={{ height: "42px" }}
+            sx={{ height: "60px", minWidth: "100px" }} // Yüksekliği artır
           >
             Ara
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "assistant-rooms",
+                  content: dummyResponse.message,
+                  data: fixNulls(dummyResponse),
+                },
+              ]);
+              setBookingDetails((prev) => ({
+                ...prev,
+                startDatetime: fixNulls(dummyResponse).requirements?.date || "",
+                startTime:
+                  fixNulls(dummyResponse).requirements?.startTime || "",
+                endTime: fixNulls(dummyResponse).requirements?.endTime || "",
+              }));
+            }}
+            sx={{ height: "60px", minWidth: "140px" }} // Yüksekliği artır
+          >
+            Show Dummy Rooms
           </Button>
         </Box>
 
@@ -377,14 +623,19 @@ function HomePage() {
                 fullWidth
                 label="İsim Soyisim"
                 value={bookingDetails.userName}
-                onChange={(e) => setBookingDetails(prev => ({ ...prev, userName: e.target.value }))}
+                onChange={(e) =>
+                  setBookingDetails((prev) => ({
+                    ...prev,
+                    userName: e.target.value,
+                  }))
+                }
                 margin="normal"
                 required
                 sx={{
-                  '& .MuiInputBase-input': {
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                  }
+                  "& .MuiInputBase-input": {
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                  },
                 }}
               />
               <TextField
@@ -392,14 +643,19 @@ function HomePage() {
                 label="E-posta"
                 type="email"
                 value={bookingDetails.userEmail}
-                onChange={(e) => setBookingDetails(prev => ({ ...prev, userEmail: e.target.value }))}
+                onChange={(e) =>
+                  setBookingDetails((prev) => ({
+                    ...prev,
+                    userEmail: e.target.value,
+                  }))
+                }
                 margin="normal"
                 required
                 sx={{
-                  '& .MuiInputBase-input': {
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                  }
+                  "& .MuiInputBase-input": {
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                  },
                 }}
               />
               <TextField
@@ -407,7 +663,12 @@ function HomePage() {
                 label="Başlangıç Tarihi ve Saati"
                 type="datetime-local"
                 value={bookingDetails.startDatetime}
-                onChange={(e) => setBookingDetails(prev => ({ ...prev, startDatetime: e.target.value }))}
+                onChange={(e) =>
+                  setBookingDetails((prev) => ({
+                    ...prev,
+                    startDatetime: e.target.value,
+                  }))
+                }
                 margin="normal"
                 required
                 InputLabelProps={{ shrink: true }}
@@ -417,7 +678,12 @@ function HomePage() {
                 label="Bitiş Tarihi ve Saati"
                 type="datetime-local"
                 value={bookingDetails.endDatetime}
-                onChange={(e) => setBookingDetails(prev => ({ ...prev, endDatetime: e.target.value }))}
+                onChange={(e) =>
+                  setBookingDetails((prev) => ({
+                    ...prev,
+                    endDatetime: e.target.value,
+                  }))
+                }
                 margin="normal"
                 required
                 InputLabelProps={{ shrink: true }}
@@ -428,32 +694,41 @@ function HomePage() {
                 multiline
                 rows={3}
                 value={bookingDetails.purpose}
-                onChange={(e) => setBookingDetails(prev => ({ ...prev, purpose: e.target.value }))}
+                onChange={(e) =>
+                  setBookingDetails((prev) => ({
+                    ...prev,
+                    purpose: e.target.value,
+                  }))
+                }
                 margin="normal"
                 sx={{
-                  '& .MuiInputBase-root': {
-                    overflow: 'hidden',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
+                  "& .MuiInputBase-root": {
+                    overflow: "hidden",
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
                   },
-                  '& .MuiInputBase-input': {
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                    whiteSpace: 'pre-wrap',
-                    resize: 'none',
-                  }
+                  "& .MuiInputBase-input": {
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                    whiteSpace: "pre-wrap",
+                    resize: "none",
+                  },
                 }}
               />
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setBookingDialogOpen(false)}>
-              İptal
-            </Button>
+            <Button onClick={() => setBookingDialogOpen(false)}>İptal</Button>
             <Button
               onClick={handleBookingSubmit}
               variant="contained"
-              disabled={loading || !bookingDetails.userName || !bookingDetails.userEmail || !bookingDetails.startDatetime || !bookingDetails.endDatetime}
+              disabled={
+                loading ||
+                !bookingDetails.userName ||
+                !bookingDetails.userEmail ||
+                !bookingDetails.startDatetime ||
+                !bookingDetails.endDatetime
+              }
             >
               {loading ? <CircularProgress size={20} /> : "Rezervasyon Yap"}
             </Button>
@@ -464,12 +739,12 @@ function HomePage() {
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
         >
-          <Alert 
-            onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+          <Alert
+            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
             severity={snackbar.severity}
-            sx={{ width: '100%' }}
+            sx={{ width: "100%" }}
           >
             {snackbar.message}
           </Alert>

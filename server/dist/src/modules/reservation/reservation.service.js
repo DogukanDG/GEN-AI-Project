@@ -88,41 +88,65 @@ class ReservationService {
     }
     async searchRoomsWithAI(userPrompt) {
         try {
+            console.log('=== searchRoomsWithAI started ===');
+            console.log('User prompt:', userPrompt);
+            console.log('Current timestamp:', new Date().toISOString());
             // Parse user requirements using Gemini AI
+            console.log('About to call geminiService.parseRoomRequest...');
             const requirements = await gemini_service_1.default.parseRoomRequest(userPrompt);
+            console.log('Successfully received requirements from Gemini:', JSON.stringify(requirements, null, 2));
             // Get available rooms from database
+            console.log('Fetching available rooms...');
             const availableRooms = await roomFeatureRepository.findAll();
+            console.log('Available rooms count:', availableRooms.length);
             if (availableRooms.length === 0) {
                 throw new errors_1.HttpError(404, 'No rooms available');
             }
             // Filter rooms based on basic requirements first
             let filteredRooms = availableRooms;
+            console.log('Starting room filtering...');
             // Filter by capacity
             if (requirements.capacity) {
+                console.log('Filtering by capacity:', requirements.capacity);
                 filteredRooms = filteredRooms.filter((room) => room.capacity >= requirements.capacity);
+                console.log('Rooms after capacity filter:', filteredRooms.length);
             }
             // Filter by room type
             if (requirements.roomType) {
+                console.log('Filtering by room type:', requirements.roomType);
                 filteredRooms = filteredRooms.filter((room) => room.roomType === requirements.roomType);
+                console.log('Rooms after room type filter:', filteredRooms.length);
             }
             // Filter by required features
             if (requirements.hasProjector === true) {
+                console.log('Filtering by projector requirement');
                 filteredRooms = filteredRooms.filter((room) => room.hasProjector);
+                console.log('Rooms after projector filter:', filteredRooms.length);
             }
             if (requirements.hasAirConditioner === true) {
+                console.log('Filtering by air conditioner requirement');
                 filteredRooms = filteredRooms.filter((room) => room.hasAirConditioner);
+                console.log('Rooms after air conditioner filter:', filteredRooms.length);
             }
             if (requirements.hasMicrophone === true) {
+                console.log('Filtering by microphone requirement');
                 filteredRooms = filteredRooms.filter((room) => room.hasMicrophone);
+                console.log('Rooms after microphone filter:', filteredRooms.length);
             }
             if (requirements.hasCamera === true) {
+                console.log('Filtering by camera requirement');
                 filteredRooms = filteredRooms.filter((room) => room.hasCamera);
+                console.log('Rooms after camera filter:', filteredRooms.length);
             }
             if (requirements.hasNoiseCancelling === true) {
+                console.log('Filtering by noise cancelling requirement');
                 filteredRooms = filteredRooms.filter((room) => room.hasNoiseCancelling);
+                console.log('Rooms after noise cancelling filter:', filteredRooms.length);
             }
             if (requirements.hasNaturalLight === true) {
+                console.log('Filtering by natural light requirement');
                 filteredRooms = filteredRooms.filter((room) => room.hasNaturalLight);
+                console.log('Rooms after natural light filter:', filteredRooms.length);
             }
             if (filteredRooms.length === 0) {
                 return {
@@ -132,7 +156,9 @@ class ReservationService {
                 };
             }
             // Use Gemini AI to rank the filtered rooms
+            console.log('Ranking rooms with Gemini AI...');
             const rankedRooms = await gemini_service_1.default.rankRooms(requirements, filteredRooms);
+            console.log('Ranking complete. Rooms ranked:', rankedRooms.length);
             return {
                 requirements,
                 rooms: rankedRooms,
