@@ -274,6 +274,33 @@ export class ReservationController {
       next(error);
     }
   }
+
+  async getReservedSlots(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { roomNumber, date } = req.query;
+      
+      if (!roomNumber || !date) {
+        res.status(400).json({
+          success: false,
+          message: 'Room number and date are required'
+        });
+        return;
+      }
+
+      const reservedSlots = await reservationService.getReservedSlots(
+        roomNumber as string,
+        date as string
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Reserved slots retrieved successfully',
+        data: reservedSlots
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new ReservationController();

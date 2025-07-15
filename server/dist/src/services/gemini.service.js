@@ -12,37 +12,116 @@ class GeminiService {
         this.genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
         this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     }
-    // Önce prompt'un oda rezervasyonu ile ilgili olup olmadığını kontrol et
+    // YÖNTEM 1: Gemini'nin kendi dil yeteneklerini kullan
+    getCurrentDateContext() {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return `
+Current Date Context:
+- Today is: ${today.toISOString().split("T")[0]} (${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")})
+- Tomorrow is: ${tomorrow.toISOString().split("T")[0]}
+- Current year: ${today.getFullYear()}
+- Current month: ${today.getMonth() + 1}
+- Current day: ${today.getDate()}
+`;
+    }
+    // YÖNTEM 2: Çok dilli tarih normalizasyonu için ayrı API çağrısı
+    async normalizeDateExpression(userPrompt) {
+        const dateContext = this.getCurrentDateContext();
+        const normalizationPrompt = `
+${dateContext}
+
+You are a multilingual date expression normalizer. Convert ANY date-related expressions in the following text to ISO date format (YYYY-MM-DD).
+
+Text: "${userPrompt}"
+
+Rules:
+1. Understand date expressions in ANY language (Turkish, English, Spanish, French, German, etc.)
+2. Convert relative dates: "tomorrow/yarın/mañana/demain" → actual ISO date
+3. Convert specific dates: "15 July/15 temmuz/15 julio" → ISO format with current year if not specified
+4. Keep non-date parts of the text unchanged
+5. If no date expressions found, return the text as-is
+
+Examples:
+- "yarın için 30 kişilik oda" → "2025-07-16 için 30 kişilik oda"
+- "15 temmuz toplantı" → "2025-07-15 toplantı"
+- "mañana necesito sala" → "2025-07-16 necesito sala"
+- "demain salle pour 20" → "2025-07-16 salle pour 20"
+- "next week meeting" → "2025-07-22 meeting"
+
+Return ONLY the normalized text, no explanations.
+`;
+        try {
+            const result = await this.model.generateContent(normalizationPrompt);
+            const response = await result.response;
+            const normalizedText = response.text().trim();
+            console.log("Date normalization:", userPrompt, "→", normalizedText);
+            return normalizedText;
+        }
+        catch (error) {
+            console.error("Error normalizing date:", error);
+            // Hata durumunda orijinal metni döndür
+            return userPrompt;
+        }
+    }
+    // YÖNTEM 3: JavaScript Date parsing kütüphanesi kullan
+    async parseWithDateLibrary(userPrompt) {
+        // Bu örnekte chrono-node benzeri bir kütüphane kullanılabilir
+        // npm install chrono-node
+        try {
+            // Örnek: chrono-node kullanımı (kurulu değilse çalışmaz)
+            /*
+            const chrono = require('chrono-node');
+            const parsed = chrono.parseDate(userPrompt);
+            if (parsed) {
+              const isoDate = parsed.toISOString().split('T')[0];
+              return userPrompt.replace(/yarın|tomorrow|mañana|demain/gi, isoDate);
+            }
+            */
+            // Basit JavaScript Date parsing
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return userPrompt
+                .replace(/yarın|tomorrow|mañana|demain|завтра|明日/gi, tomorrow.toISOString().split("T")[0])
+                .replace(/bugün|today|hoy|aujourd'hui|сегодня|今日/gi, today.toISOString().split("T")[0]);
+        }
+        catch (error) {
+            console.error("Error parsing with date library:", error);
+            return userPrompt;
+        }
+    }
     async validateRoomRequest(userPrompt) {
+        console.log("=== Validating room request ===");
+        console.log("User prompt:", userPrompt);
         const validationPrompt = `
-    You are a room booking system validator. Analyze the following user request and determine if it's a legitimate room booking request.
+    You are a multilingual room booking system validator. Analyze the following user request in ANY language and determine if it's a legitimate room booking request.
 
     User request: "${userPrompt}"
 
-    A valid room booking request should:
-    1. Be related to booking/reserving a room, office, classroom, or meeting space
-    2. Include reasonable requirements (capacity, equipment, time, etc.)
-    3. Be related to work, study, meetings, presentations, or similar professional/educational activities
-    4. Not include completely unrelated topics (like planting trees, cooking, shopping, etc.)
+    A valid room booking request should contain:
+    - Intent to book, reserve, or find a room/space (in any language)
+    - Some indication of use (meeting, study, class, presentation, etc.)
+    - May include: number of people, equipment needs, time, date, features
+
+    Invalid requests include:
+    - Completely unrelated topics (cooking, shopping, nature, etc.)
+    - Nonsensical or gibberish text
+    - Requests that have nothing to do with rooms or bookings
 
     Return ONLY a JSON object with this structure:
     {
       "isValid": true/false,
-      "reason": "brief explanation of why it's valid or invalid"
+      "confidence": 0-100,
+      "reason": "brief explanation if not valid"
     }
 
-    Examples of INVALID requests:
-    - "I want to plant trees in a room"
-    - "Book me a restaurant for dinner"
-    - "I need a room to cook pasta"
-    - "Find me a room to sleep"
-    - Random text or gibberish
-
-    Examples of VALID requests:
-    - "I need a room for 10 people with a projector"
-    - "Book a study room for tomorrow"
-    - "I want a classroom for a presentation"
-    - "Need a quiet room for a meeting"
+    Examples:
+    - "I need a room for 10 people" → {"isValid": true, "confidence": 95}
+    - "10 kişilik oda lazım" → {"isValid": true, "confidence": 95}
+    - "necesito sala para 10 personas" → {"isValid": true, "confidence": 95}
+    - "I want to cook dinner" → {"isValid": false, "confidence": 95, "reason": "About cooking, not room booking"}
     `;
         try {
             const result = await this.model.generateContent(validationPrompt);
@@ -53,93 +132,73 @@ class GeminiService {
                 .replace(/```/g, "")
                 .trim();
             const validation = JSON.parse(cleanedText);
-            return {
-                isValid: validation.isValid,
-                message: validation.reason,
-            };
+            console.log("Validation result:", validation);
+            return validation;
         }
         catch (error) {
-            console.error("Error validating room request:", error);
-            // Hata durumunda güvenli tarafta kalıp geçersiz say
+            console.error("Error validating request:", error);
             return {
                 isValid: false,
-                message: "Unable to validate request format",
+                confidence: 0,
+                reason: "Unable to validate request",
             };
         }
-    }
-    // Oda gereksinimlerini doğrula ve mantık kontrolü yap
-    validateRequirements(requirements) {
-        // Kapasite kontrolü
-        if (requirements.capacity &&
-            (requirements.capacity < 1 || requirements.capacity > 1000)) {
-            return {
-                isValid: false,
-                message: "Room capacity must be between 1 and 1000 people",
-            };
-        }
-        // Tarih kontrolü
-        if (requirements.date) {
-            const date = new Date(requirements.date);
-            const today = new Date();
-            if (date < today) {
-                return {
-                    isValid: false,
-                    message: "Cannot book rooms for past dates",
-                };
-            }
-        }
-        // Saat kontrolü
-        if (requirements.startTime && requirements.endTime) {
-            const start = new Date(`2000-01-01T${requirements.startTime}`);
-            const end = new Date(`2000-01-01T${requirements.endTime}`);
-            if (start >= end) {
-                return {
-                    isValid: false,
-                    message: "End time must be after start time",
-                };
-            }
-        }
-        return { isValid: true };
     }
     async parseRoomRequest(userPrompt) {
-        // Önce prompt'un geçerli olup olmadığını kontrol et
+        console.log("=== Gemini parseRoomRequest started ===");
+        console.log("User prompt:", userPrompt);
+        // Önce prompt'u validate et
         const validation = await this.validateRoomRequest(userPrompt);
-        if (!validation.isValid) {
-            console.log("Invalid room request detected:", validation.message);
-            return {
-                isValid: false,
-                errorMessage: `This doesn't appear to be a valid room booking request. ${validation.message}`,
-            };
+        if (!validation.isValid || validation.confidence < 70) {
+            throw new Error(`Invalid room booking request: ${validation.reason ||
+                "Request does not appear to be related to room booking"}`);
         }
+        // SEÇENEK 1: Tarih normalizasyonu yap (önerilen)
+        const normalizedPrompt = await this.normalizeDateExpression(userPrompt);
+        // SEÇENEK 2: Veya JavaScript parsing kullan
+        // const normalizedPrompt = await this.parseWithDateLibrary(userPrompt);
+        const dateContext = this.getCurrentDateContext();
         const prompt = `
-    You are an AI assistant for a room booking system. Parse the following VALIDATED room booking request and extract the room requirements in JSON format.
+    You are a multilingual AI assistant for a room booking system. Parse the following user request in ANY language and extract room requirements.
 
-    User request: "${userPrompt}"
+    ${dateContext}
+
+    User request: "${normalizedPrompt}"
+
+    IMPORTANT: 
+    - Understand requests in ANY language (Turkish, English, Spanish, French, German, etc.)
+    - The date expressions have been normalized to ISO format if present
+    - Extract room-related information regardless of language
 
     Please extract the following information and return ONLY a valid JSON object:
-    - capacity: number of people (if mentioned, must be reasonable 1-1000)
-    - hasProjector: true/false (if projector, presentation, display mentioned)
-    - hasAirConditioner: true/false (if air conditioning, AC, cooling mentioned)
-    - hasMicrophone: true/false (if microphone, mic, audio mentioned)
-    - hasCamera: true/false (if camera, recording, video mentioned)
-    - hasNoiseCancelling: true/false (if quiet, noise cancelling, silent mentioned)
-    - hasNaturalLight: true/false (if natural light, window, daylight mentioned)
-    - roomType: "classroom" or "study_room" (if lecture/presentation = classroom, if study/meeting = study_room)
-    - date: ISO date string (if date mentioned, format: YYYY-MM-DD)
-    - startTime: time string (if start time mentioned, format: HH:MM)
-    - endTime: time string (if end time mentioned, format: HH:MM)
-    - purpose: brief description of the purpose (work/study related only)
+    - capacity: number of people (if mentioned in any language)
+    - hasProjector: true/false/null (if projector/projektör/proyector mentioned)
+    - hasAirConditioner: true/false/null (if AC/klima/aire acondicionado mentioned)
+    - hasMicrophone: true/false/null (if microphone/mikrofon/micrófono mentioned)
+    - hasCamera: true/false/null (if camera/kamera/cámara mentioned)
+    - hasNoiseCancelling: true/false/null (if quiet/sessiz/silencioso mentioned)
+    - hasNaturalLight: true/false/null (if natural light/doğal ışık/luz natural mentioned)
+    - roomType: "classroom" or "study_room" or null (meeting/toplantı/reunión = study_room, lecture/ders/clase = classroom)
+    - date: ISO date string (YYYY-MM-DD) - should be normalized already
+    - startTime: time string (HH:MM format)
+    - endTime: time string (HH:MM format)
+    - purpose: brief description of purpose
 
-    IMPORTANT: Only include fields that are explicitly mentioned or can be reasonably inferred from the request.
-    Do not make up information that wasn't mentioned.
+    Language examples:
+    - "yarın 30 kişilik oda" → {"capacity": 30, "date": "2025-07-16"}
+    - "tomorrow room for 30 people" → {"capacity": 30, "date": "2025-07-16"}
+    - "mañana sala para 30 personas" → {"capacity": 30, "date": "2025-07-16"}
+    - "demain salle pour 30 personnes" → {"capacity": 30, "date": "2025-07-16"}
 
     Return only the JSON object without any additional text or formatting.
     `;
         try {
+            console.log("Calling Gemini API...");
             const result = await this.model.generateContent(prompt);
+            console.log("Gemini API response received");
             const response = await result.response;
             const text = response.text();
-            // Clean the response and parse JSON
+            console.log("Raw Gemini response:", text);
             const cleanedText = text
                 .replace(/```json/g, "")
                 .replace(/```/g, "")
@@ -147,28 +206,32 @@ class GeminiService {
             console.log("Cleaned response:", cleanedText);
             const parsedRequirements = JSON.parse(cleanedText);
             console.log("Parsed requirements:", parsedRequirements);
-            // Çıkarılan gereksinimleri doğrula
-            const requirementsValidation = this.validateRequirements(parsedRequirements);
-            if (!requirementsValidation.isValid) {
-                return {
-                    isValid: false,
-                    errorMessage: requirementsValidation.message,
-                };
+            if (!this.hasValidRoomRequirements(parsedRequirements)) {
+                throw new Error("No valid room requirements found in the request");
             }
-            return {
-                isValid: true,
-                requirements: parsedRequirements,
-            };
+            return parsedRequirements;
         }
         catch (error) {
             console.error("Error parsing room request with Gemini:", error);
-            return {
-                isValid: false,
-                errorMessage: "Failed to parse room requirements. Please make sure your request is clear and specific.",
-            };
+            throw new Error("Failed to parse room requirements");
         }
     }
+    hasValidRoomRequirements(requirements) {
+        const hasCapacity = !!requirements.capacity && requirements.capacity > 0;
+        const hasFeatures = !!requirements.hasProjector ||
+            !!requirements.hasAirConditioner ||
+            !!requirements.hasMicrophone ||
+            !!requirements.hasCamera ||
+            !!requirements.hasNoiseCancelling ||
+            !!requirements.hasNaturalLight;
+        const hasRoomType = !!requirements.roomType;
+        const hasTimeInfo = !!requirements.date || !!requirements.startTime || !!requirements.endTime;
+        const hasPurpose = !!requirements.purpose && requirements.purpose.trim().length > 0;
+        return (hasCapacity || hasFeatures || hasRoomType || hasTimeInfo || hasPurpose);
+    }
+    // Diğer metodlar aynı kalıyor...
     async rankRooms(requirements, availableRooms) {
+        // Mevcut kod aynı
         const roomsData = JSON.stringify(availableRooms, null, 2);
         const requirementsData = JSON.stringify(requirements, null, 2);
         const prompt = `
@@ -190,31 +253,18 @@ class GeminiService {
       }
     ]
 
-    Ranking criteria:
-    1. Capacity: Must accommodate the required number of people (MANDATORY)
-    2. Required features: Must have all explicitly requested features (HIGH PRIORITY)
-    3. Room type: Should match if specified (MEDIUM PRIORITY)
-    4. Additional features: Bonus points for extra useful features (LOW PRIORITY)
-
-    IMPORTANT: 
-    - If a room cannot accommodate the required capacity, give it a score of 0
-    - If a room doesn't have required features, significantly lower the score
-    - Only return rooms that make sense for the given requirements
-
     Return only the JSON array without any additional text or formatting.
     `;
         try {
             const result = await this.model.generateContent(prompt);
             const response = await result.response;
             const text = response.text();
-            // Clean the response and parse JSON
             const cleanedText = text
                 .replace(/```json/g, "")
                 .replace(/```/g, "")
                 .trim();
             const rankedRooms = JSON.parse(cleanedText);
-            // Düşük skorlu odaları filtrele
-            return rankedRooms.filter((room) => room.matchScore > 10);
+            return rankedRooms;
         }
         catch (error) {
             console.error("Error ranking rooms with Gemini:", error);
@@ -232,7 +282,6 @@ class GeminiService {
     Purpose: ${reservation.purpose || "Not specified"}
     
     Make it professional but friendly, and include any important details about the room.
-    Keep it concise and informative.
     `;
         try {
             const result = await this.model.generateContent(prompt);

@@ -6,19 +6,26 @@ import {
   getReservationsValidation 
 } from './reservation.validation';
 import { validateRequest } from '../../middlewares/request-validator.middleware';
+import { apiLimiter, searchLimiter, reservationLimiter } from '../../middlewares/rate-limiter.middleware';
 
 const router = Router();
+
+// Apply general rate limiting to all reservation routes
+router.use(apiLimiter);
 
 // Test endpoint
 router.get('/test', (req, res) => {
   res.json({ message: 'Reservation routes working!' });
 });
 
-// AI-powered room search
-router.post('/search-ai', reservationController.searchRoomsWithAI);
+// AI-powered room search - with stricter rate limiting
+router.post('/search-ai', searchLimiter, reservationController.searchRoomsWithAI);
 
-// Check room availability
-router.post('/check-availability', reservationController.checkRoomAvailability);
+// Check room availability - with reservation rate limiting
+router.post('/check-availability', reservationLimiter, reservationController.checkRoomAvailability);
+
+// Get reserved time slots for a room on a specific date - with reservation rate limiting
+router.get('/reserved-slots', reservationLimiter, reservationController.getReservedSlots);
 
 // Get upcoming reservations
 router.get('/upcoming', reservationController.getUpcomingReservations);
@@ -29,14 +36,14 @@ router.get('/user/:email', reservationController.getUserReservations);
 // Get all reservations with optional filters
 router.get('/', getReservationsValidation, validateRequest, reservationController.getReservations);
 
-// Create a new reservation
-router.post('/', createReservationValidation, validateRequest, reservationController.createReservation);
+// Create a new reservation - with reservation rate limiting
+router.post('/', reservationLimiter, createReservationValidation, validateRequest, reservationController.createReservation);
 
-// Update a reservation
-router.put('/:id', updateReservationValidation, validateRequest, reservationController.updateReservation);
+// Update a reservation - with reservation rate limiting
+router.put('/:id', reservationLimiter, updateReservationValidation, validateRequest, reservationController.updateReservation);
 
-// Cancel a reservation
-router.patch('/:id/cancel', reservationController.cancelReservation);
+// Cancel a reservation - with reservation rate limiting
+router.patch('/:id/cancel', reservationLimiter, reservationController.cancelReservation);
 
 // Get a specific reservation by ID (must be last due to /:id pattern)
 router.get('/:id', reservationController.getReservationById);

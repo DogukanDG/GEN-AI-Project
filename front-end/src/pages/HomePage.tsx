@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dummyResponse from "../../../server/src/data/dummy_response.json";
 import {
   Box,
@@ -64,6 +64,7 @@ function HomePage() {
     severity: "success" as "success" | "error",
   });
   const [reservedSlots, setReservedSlots] = useState<string[]>([]);
+  const [dateChangeTimeout, setDateChangeTimeout] = useState<NodeJS.Timeout | null>(null);
   const timeSlotPeriods = [
     { label: "08:00 - 10:00", start: "08:00", end: "10:00" },
     { label: "10:00 - 12:00", start: "10:00", end: "12:00" },
@@ -86,7 +87,7 @@ function HomePage() {
     "&:hover fieldset": { borderColor: "#555" },
   };
 
-  function fixNulls(obj: any) {
+  function fixNulls(obj: any): any {
     if (Array.isArray(obj)) {
       return obj.map(fixNulls);
     } else if (obj && typeof obj === "object") {
@@ -102,13 +103,34 @@ function HomePage() {
     }
     return obj;
   }
+
+  // Helper function to check if time slots overlap
+  function timeSlotOverlaps(slotStart: string, slotEnd: string, reservedSlot: string): boolean {
+    if (!reservedSlot.includes('-')) return false;
+    
+    const [reservedStart, reservedEnd] = reservedSlot.split('-');
+    
+    // Convert time strings to minutes for easier comparison
+    const timeToMinutes = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+    
+    const slotStartMin = timeToMinutes(slotStart);
+    const slotEndMin = timeToMinutes(slotEnd);
+    const reservedStartMin = timeToMinutes(reservedStart);
+    const reservedEndMin = timeToMinutes(reservedEnd);
+    
+    // Check if time slots have actual overlap (not just touching endpoints)
+    return (slotStartMin < reservedEndMin && slotEndMin > reservedStartMin);
+  }
   useEffect(() => {
     // Get user info for pre-filling
     setMessages([
       {
         role: "assistant-rooms",
         content: dummyResponse.message,
-        data: dummyResponse,
+        data: fixNulls(dummyResponse) as RoomSearchResponse,
       },
     ]);
     const user = authService.getStoredUser();
@@ -121,7 +143,7 @@ function HomePage() {
     }
   }, []);
 
-  const handleRoomBooking = (room: RoomMatch, requirements: any) => {
+  const handleRoomBooking = async (room: RoomMatch, requirements: any) => {
     setSelectedRoom(room);
 
     setBookingDetails((prev) => ({
@@ -131,6 +153,27 @@ function HomePage() {
       endTime: requirements.endTime || "",
       purpose: requirements.purpose || "",
     }));
+
+    // Load reserved slots if date is available
+    if (requirements.date && room.roomNumber) {
+      try {
+        const reserved = await roomService.getReservedSlots({
+          roomNumber: room.roomNumber,
+          date: requirements.date,
+        });
+        setReservedSlots(reserved);
+        console.log("Reserved slots for", room.roomNumber, "on", requirements.date, ":", reserved);
+        console.log("Time slot periods:", timeSlotPeriods.map(slot => `${slot.start}-${slot.end}`));
+      } catch (error: any) {
+        console.error("Error loading reserved slots:", error);
+        // Don't show error for rate limiting, just keep existing slots
+        if (error.response?.status !== 429) {
+          setReservedSlots([]);
+        }
+      }
+    } else {
+      setReservedSlots([]);
+    }
 
     setBookingDialogOpen(true);
   };
@@ -221,22 +264,52 @@ function HomePage() {
     }
   };
 
-  const handleDateChange = async (date: Date | null) => {
+  // Debounced date change handler to prevent too many API calls
+  const handleDateChange = useCallback(async (date: Date | null) => {
     setBookingDetails((prev) => ({
       ...prev,
       startDatetime: date ? date.toISOString().split("T")[0] : "",
     }));
-    if (selectedRoom && date) {
-      const reserved = await roomService.getReservedSlots({
-        roomNumber: selectedRoom.roomNumber,
-        date: date.toISOString().split("T")[0],
-      });
-      setReservedSlots(reserved);
-      console.log("Reserved slots:", reserved);
-    } else {
-      setReservedSlots([]);
+
+    // Clear existing timeout
+    if (dateChangeTimeout) {
+      clearTimeout(dateChangeTimeout);
     }
-  };
+
+    // Set new timeout to debounce API calls
+    const timeout = setTimeout(async () => {
+      if (selectedRoom && date) {
+        try {
+          const reserved = await roomService.getReservedSlots({
+            roomNumber: selectedRoom.roomNumber,
+            date: date.toISOString().split("T")[0],
+          });
+          setReservedSlots(reserved);
+          console.log("Reserved slots (date change):", reserved);
+          console.log("Time slot periods:", timeSlotPeriods.map(slot => `${slot.start}-${slot.end}`));
+        } catch (error: any) {
+          console.error("Error loading reserved slots:", error);
+          // Don't show error for rate limiting, just keep existing slots
+          if (error.response?.status !== 429) {
+            setReservedSlots([]);
+          }
+        }
+      } else {
+        setReservedSlots([]);
+      }
+    }, 500); // Wait 500ms before making API call
+
+    setDateChangeTimeout(timeout);
+  }, [selectedRoom, dateChangeTimeout, timeSlotPeriods]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dateChangeTimeout) {
+        clearTimeout(dateChangeTimeout);
+      }
+    };
+  }, [dateChangeTimeout]);
   const renderRoomFeatures = (room: RoomMatch["room"]) => {
     const features = [];
 
@@ -663,18 +736,47 @@ function HomePage() {
                       }}
                     >
                       <MenuItem value="">Select time slot</MenuItem>
-                      {timeSlotPeriods.map((slot) => (
-                        <MenuItem
-                          key={slot.label}
-                          value={`${slot.start}-${slot.end}`}
-                          disabled={
-                            reservedSlots.includes(slot.start) ||
-                            reservedSlots.includes(slot.end)
+                      {timeSlotPeriods.map((slot) => {
+                        // Check if this exact time slot or overlapping time slot is reserved
+                        const isDisabled = reservedSlots.some((reservedSlot) => {
+                          const slotRange = `${slot.start}-${slot.end}`;
+                          
+                          // Exact match check
+                          if (reservedSlot === slotRange) {
+                            console.log(`Exact match found: ${slotRange} matches ${reservedSlot}`);
+                            return true;
                           }
-                        >
-                          {slot.label}
-                        </MenuItem>
-                      ))}
+                          
+                          // Overlap check - but only if there's actual time conflict
+                          const hasOverlap = timeSlotOverlaps(slot.start, slot.end, reservedSlot);
+                          if (hasOverlap) {
+                            console.log(`Overlap found: ${slotRange} overlaps with ${reservedSlot}`);
+                          }
+                          return hasOverlap;
+                        });
+                        
+                        return (
+                          <MenuItem
+                            key={slot.label}
+                            value={`${slot.start}-${slot.end}`}
+                            disabled={isDisabled}
+                            sx={{
+                              opacity: isDisabled ? 0.6 : 1,
+                              backgroundColor: isDisabled ? '#f5f5f5' : 'inherit',
+                              color: isDisabled ? '#999' : 'inherit',
+                              '&:hover': {
+                                backgroundColor: isDisabled ? '#f5f5f5' : 'rgba(0, 0, 0, 0.04)',
+                              },
+                              '&.Mui-disabled': {
+                                backgroundColor: '#e8e8e8',
+                                color: '#999',
+                              }
+                            }}
+                          >
+                            {slot.label} {isDisabled && '(Reserved)'}
+                          </MenuItem>
+                        );
+                      })}
                     </Select>
                   </FormControl>
                 </Box>
