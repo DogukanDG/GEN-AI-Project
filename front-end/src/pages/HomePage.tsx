@@ -16,6 +16,10 @@ import {
   CardContent,
   Alert,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Room as RoomIcon,
@@ -31,6 +35,8 @@ import NavBar from "../components/NavBar";
 import { roomService } from "../services/roomService";
 import type { RoomMatch, RoomSearchResponse } from "../services/roomService";
 import { authService } from "../services/authService";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 type Message =
   | { role: "user"; content: string }
@@ -48,6 +54,8 @@ function HomePage() {
     userEmail: "",
     startDatetime: "",
     endDatetime: "",
+    startTime: "",
+    endTime: "",
     purpose: "",
   });
   const [snackbar, setSnackbar] = useState({
@@ -132,12 +140,17 @@ function HomePage() {
 
     try {
       setLoading(true);
+
+      // Combine date and time for API
+      const startDateTime = `${bookingDetails.startDatetime}T${bookingDetails.startTime}:00`;
+      const endDateTime = `${bookingDetails.startDatetime}T${bookingDetails.endTime}:00`;
+
       const result = await roomService.createReservation({
         roomNumber: selectedRoom.roomNumber,
         userName: bookingDetails.userName,
         userEmail: bookingDetails.userEmail,
-        startDatetime: bookingDetails.startDatetime,
-        endDatetime: bookingDetails.endDatetime,
+        startDatetime: startDateTime,
+        endDatetime: endDateTime,
         purpose: bookingDetails.purpose,
       });
 
@@ -154,7 +167,7 @@ function HomePage() {
         open: true,
         message:
           error.response?.data?.message ||
-          "Rezervasyon oluşturulurken hata oluştu",
+          "An error occurred while creating the reservation",
         severity: "error",
       });
     } finally {
@@ -200,7 +213,7 @@ function HomePage() {
         role: "assistant",
         content:
           error.response?.data?.message ||
-          "Arama sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+          "An error occurred during the search. Please try again.",
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -232,32 +245,37 @@ function HomePage() {
         <Chip
           key="projector"
           icon={<ProjectorIcon />}
-          label="Projektör"
+          label="Projector"
           size="small"
         />
       );
     if (room.hasAirConditioner)
       features.push(
-        <Chip key="ac" icon={<AirIcon />} label="Klima" size="small" />
+        <Chip
+          key="ac"
+          icon={<AirIcon />}
+          label="Air Conditioning"
+          size="small"
+        />
       );
     if (room.hasMicrophone)
       features.push(
-        <Chip key="mic" icon={<MicIcon />} label="Mikrofon" size="small" />
+        <Chip key="mic" icon={<MicIcon />} label="Microphone" size="small" />
       );
     if (room.hasCamera)
       features.push(
-        <Chip key="camera" icon={<CameraIcon />} label="Kamera" size="small" />
+        <Chip key="camera" icon={<CameraIcon />} label="Camera" size="small" />
       );
     if (room.hasNoiseCancelling)
       features.push(
-        <Chip key="quiet" icon={<QuietIcon />} label="Sessiz" size="small" />
+        <Chip key="quiet" icon={<QuietIcon />} label="Quiet" size="small" />
       );
     if (room.hasNaturalLight)
       features.push(
         <Chip
           key="light"
           icon={<LightIcon />}
-          label="Doğal Işık"
+          label="Natural Light"
           size="small"
         />
       );
@@ -362,25 +380,6 @@ function HomePage() {
                               >
                                 {room.roomNumber}
                               </Typography>
-                              <Chip
-                                label={`${room.matchScore}% Uyumlu`}
-                                color={
-                                  room.matchScore >= 80
-                                    ? "success"
-                                    : room.matchScore >= 60
-                                    ? "warning"
-                                    : "default"
-                                }
-                                size="small"
-                                sx={{
-                                  maxWidth: "150px",
-                                  "& .MuiChip-label": {
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  },
-                                }}
-                              />
                             </Box>
 
                             <Box sx={{ mb: 2 }}>
@@ -396,7 +395,7 @@ function HomePage() {
                                     verticalAlign: "middle",
                                   }}
                                 />
-                                Kapasite: {room.room.capacity} kişi
+                                Capacity: {room.room.capacity} people
                               </Typography>
                               <Typography
                                 variant="body2"
@@ -410,16 +409,16 @@ function HomePage() {
                                     verticalAlign: "middle",
                                   }}
                                 />
-                                Tür:{" "}
+                                Type:{" "}
                                 {room.room.roomType === "classroom"
-                                  ? "Sınıf"
-                                  : "Çalışma Odası"}
+                                  ? "Classroom"
+                                  : "Meeting Room"}
                               </Typography>
                               <Typography
                                 variant="body2"
                                 color="text.secondary"
                               >
-                                Kat: {room.room.floor}, Alan:{" "}
+                                Floor: {room.room.floor}, Area:{" "}
                                 {room.room.areaSqm}m²
                               </Typography>
                             </Box>
@@ -429,7 +428,7 @@ function HomePage() {
                                 variant="body2"
                                 sx={{ mb: 1, fontWeight: "medium" }}
                               >
-                                Özellikler:
+                                Features:
                               </Typography>
                               <Box
                                 sx={{
@@ -447,7 +446,7 @@ function HomePage() {
                                 variant="body2"
                                 sx={{ mb: 1, fontWeight: "medium" }}
                               >
-                                Uyum Nedenleri:
+                                Compatibility Reasons:
                               </Typography>
                               {room.matchReasons.map((reason, reasonIndex) => (
                                 <Typography
@@ -475,7 +474,7 @@ function HomePage() {
                               }
                               disabled={loading}
                             >
-                              Rezervasyon Yap
+                              Book Now
                             </Button>
                           </CardContent>
                         </Card>
@@ -483,8 +482,8 @@ function HomePage() {
                     </Box>
                   ) : (
                     <Alert severity="info">
-                      Aradığınız kriterlere uygun oda bulunamadı. Lütfen farklı
-                      kriterler ile arama yapın.
+                      No rooms found matching your criteria. Please try
+                      searching with different criteria.
                     </Alert>
                   )}
                 </Paper>
@@ -540,7 +539,7 @@ function HomePage() {
             minRows={2}
             inputProps={{ maxLength: 275 }}
             maxRows={6}
-            placeholder="Oda ihtiyacınızı doğal dilde yazın... Örn: '5 kişi için sunum odası lazım, projektör ve klima olsun'"
+            placeholder="Describe your room needs in natural language... e.g. 'We need a presentation room for 5 people, with projector and air conditioning'"
             variant="outlined"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -575,12 +574,12 @@ function HomePage() {
             }}
           />
           <Button
-            variant="contained"
+            variant="outlined"
             onClick={handleSubmit}
             disabled={loading}
             sx={{ height: "60px", minWidth: "100px" }} // Yüksekliği artır
           >
-            Ara
+            Search
           </Button>
           <Button
             variant="contained"
@@ -615,82 +614,75 @@ function HomePage() {
           fullWidth
         >
           <DialogTitle>
-            Rezervasyon Yap - {selectedRoom?.roomNumber}
+            Make a Reservation - {selectedRoom?.roomNumber}
           </DialogTitle>
           <DialogContent>
-            <Box sx={{ pt: 1 }}>
+            <Box sx={{ pt: 2 }}>
+              <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+                <Box sx={{ minWidth: 180, flex: 1 }}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <DatePicker
+                      label="Reservation Date"
+                      value={
+                        bookingDetails.startDatetime
+                          ? new Date(bookingDetails.startDatetime)
+                          : null
+                      }
+                      onChange={handleDateChange}
+                      disablePast
+                      slotProps={{
+                        textField: { fullWidth: true, required: true },
+                      }}
+                    />
+                  </LocalizationProvider>
+                </Box>
+                <Box sx={{ minWidth: 180, flex: 1, height: "100%" }}>
+                  <FormControl fullWidth required>
+                    <InputLabel id="time-slot-label">Time Slot</InputLabel>
+                    <Select
+                      labelId="time-slot-label"
+                      value={
+                        bookingDetails.startTime
+                          ? `${bookingDetails.startTime}-${bookingDetails.endTime}`
+                          : ""
+                      }
+                      label="Time Slot"
+                      onChange={(e) => {
+                        const [start, end] = e.target.value.split("-");
+                        setBookingDetails((prev) => ({
+                          ...prev,
+                          startTime: start,
+                          endTime: end,
+                        }));
+                      }}
+                      sx={{
+                        ...pickerFieldSx,
+                        minHeight: 56, // veya height: 56
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <MenuItem value="">Select time slot</MenuItem>
+                      {timeSlotPeriods.map((slot) => (
+                        <MenuItem
+                          key={slot.label}
+                          value={`${slot.start}-${slot.end}`}
+                          disabled={
+                            reservedSlots.includes(slot.start) ||
+                            reservedSlots.includes(slot.end)
+                          }
+                        >
+                          {slot.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
+
               <TextField
                 fullWidth
-                label="İsim Soyisim"
-                value={bookingDetails.userName}
-                onChange={(e) =>
-                  setBookingDetails((prev) => ({
-                    ...prev,
-                    userName: e.target.value,
-                  }))
-                }
-                margin="normal"
-                required
-                sx={{
-                  "& .MuiInputBase-input": {
-                    wordBreak: "break-word",
-                    overflowWrap: "break-word",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="E-posta"
-                type="email"
-                value={bookingDetails.userEmail}
-                onChange={(e) =>
-                  setBookingDetails((prev) => ({
-                    ...prev,
-                    userEmail: e.target.value,
-                  }))
-                }
-                margin="normal"
-                required
-                sx={{
-                  "& .MuiInputBase-input": {
-                    wordBreak: "break-word",
-                    overflowWrap: "break-word",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Başlangıç Tarihi ve Saati"
-                type="datetime-local"
-                value={bookingDetails.startDatetime}
-                onChange={(e) =>
-                  setBookingDetails((prev) => ({
-                    ...prev,
-                    startDatetime: e.target.value,
-                  }))
-                }
-                margin="normal"
-                required
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                fullWidth
-                label="Bitiş Tarihi ve Saati"
-                type="datetime-local"
-                value={bookingDetails.endDatetime}
-                onChange={(e) =>
-                  setBookingDetails((prev) => ({
-                    ...prev,
-                    endDatetime: e.target.value,
-                  }))
-                }
-                margin="normal"
-                required
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                fullWidth
-                label="Kullanım Amacı (Opsiyonel)"
+                label="Purpose (Optional)"
                 multiline
                 rows={3}
                 value={bookingDetails.purpose}
@@ -700,14 +692,16 @@ function HomePage() {
                     purpose: e.target.value,
                   }))
                 }
-                margin="normal"
                 sx={{
+                  mb: 2,
+                  "& .MuiInputLabel-root": {
+                    color: "#ccc",
+                  },
                   "& .MuiInputBase-root": {
-                    overflow: "hidden",
-                    wordBreak: "break-word",
-                    overflowWrap: "break-word",
+                    minHeight: "80px",
                   },
                   "& .MuiInputBase-input": {
+                    padding: "12px",
                     wordBreak: "break-word",
                     overflowWrap: "break-word",
                     whiteSpace: "pre-wrap",
@@ -717,20 +711,26 @@ function HomePage() {
               />
             </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setBookingDialogOpen(false)}>İptal</Button>
+          <DialogActions sx={{ p: 2, pt: 1 }}>
+            <Button
+              onClick={() => setBookingDialogOpen(false)}
+              variant="outlined"
+              sx={{ mr: 1 }}
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handleBookingSubmit}
-              variant="contained"
+              variant="outlined"
               disabled={
                 loading ||
-                !bookingDetails.userName ||
-                !bookingDetails.userEmail ||
                 !bookingDetails.startDatetime ||
-                !bookingDetails.endDatetime
+                !bookingDetails.startTime ||
+                !bookingDetails.endTime
               }
+              sx={{ minWidth: "120px", minHeight: "40px" }}
             >
-              {loading ? <CircularProgress size={20} /> : "Rezervasyon Yap"}
+              {loading ? <CircularProgress size={20} /> : "Book Room"}
             </Button>
           </DialogActions>
         </Dialog>
