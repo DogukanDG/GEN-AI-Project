@@ -90,11 +90,12 @@ function LoginPage() {
       authService.storeAuthData(result);
       const user = result.user;
       if (user.role === 'admin') {
-        try {
-          await authService.callAdminStudio();
-        } catch (studioError) {
-          console.error('Studio API hatası:', studioError);
-        }
+        // try {
+        //   // await authService.callAdminStudio();
+        // } catch (studioError) {
+        //   console.error('Studio API hatası:', studioError);
+        // }
+        navigate('/admin'); // Admin dashboard'a yönlendir
         return;
       } else {
         navigate('/homepage');

@@ -95,28 +95,53 @@ export interface CheckAvailabilityRequest {
   endDatetime: string;
 }
 
+// Reservation update
+export const updateReservation = async (
+  id: number,
+  data: Partial<Reservation>
+) => {
+  const response = await api.put(`/reservations/${id}`, data);
+  return response.data.data;
+};
+
+// Reservation delete
+export const deleteReservation = async (id: number) => {
+  await api.delete(`/reservations/${id}`);
+};
+
 export const roomService = {
   // AI-powered room search
-  searchRoomsWithAI: async (request: RoomSearchRequest): Promise<RoomSearchResponse> => {
+  searchRoomsWithAI: async (
+    request: RoomSearchRequest
+  ): Promise<RoomSearchResponse> => {
     const response = await api.post('/reservations/search-ai', request);
     return response.data.data;
   },
 
   // Check room availability
-  checkAvailability: async (request: CheckAvailabilityRequest): Promise<boolean> => {
-    const response = await api.post('/reservations/check-availability', request);
+  checkAvailability: async (
+    request: CheckAvailabilityRequest
+  ): Promise<boolean> => {
+    const response = await api.post(
+      '/reservations/check-availability',
+      request
+    );
     return response.data.data.isAvailable;
   },
 
   // Create reservation
-  createReservation: async (request: CreateReservationRequest): Promise<{ reservation: Reservation; confirmationMessage: string }> => {
+  createReservation: async (
+    request: CreateReservationRequest
+  ): Promise<{ reservation: Reservation; confirmationMessage: string }> => {
     const response = await api.post('/reservations', request);
     return response.data.data;
   },
 
   // Get user reservations
   getUserReservations: async (userEmail: string): Promise<Reservation[]> => {
-    const response = await api.get(`/reservations/user/${encodeURIComponent(userEmail)}`);
+    const response = await api.get(
+      `/reservations/user/${encodeURIComponent(userEmail)}`
+    );
     return response.data.data;
   },
 
@@ -146,7 +171,11 @@ export const roomService = {
 
   // Get upcoming reservations
   getUpcomingReservations: async (limit?: number): Promise<Reservation[]> => {
-    const response = await api.get(`/reservations/upcoming${limit ? `?limit=${limit}` : ''}`);
+    const response = await api.get(
+      `/reservations/upcoming${limit ? `?limit=${limit}` : ''}`
+    );
     return response.data.data;
-  }
+  },
+  updateReservation,
+  deleteReservation,
 };

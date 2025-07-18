@@ -1,0 +1,285 @@
+import React, { useEffect, useState } from 'react';
+import { DataGrid } from '@mui/x-data-grid';
+import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
+import {
+  Box,
+  Button,
+  Drawer,
+  TextField,
+  Typography,
+  Stack,
+} from '@mui/material';
+import Checkbox from '@mui/material/Checkbox';
+import api from '../services/api';
+
+interface Room {
+  id: number;
+  roomNumber: string;
+  floor: number;
+  roomType: string;
+  capacity: number;
+  areaSqm: number;
+  windowCount: number;
+  hasNaturalLight: boolean;
+  hasProjector: boolean;
+  hasMicrophone: boolean;
+  hasCamera: boolean;
+  hasAirConditioner: boolean;
+  hasNoiseCancelling: boolean;
+}
+
+const columns: GridColDef[] = [
+  { field: 'id', headerName: 'ID', width: 70 },
+  { field: 'roomNumber', headerName: 'Room Number', width: 120 },
+  { field: 'floor', headerName: 'Floor', width: 80 },
+  { field: 'roomType', headerName: 'Type', width: 120 },
+  { field: 'capacity', headerName: 'Capacity', width: 100 },
+  { field: 'areaSqm', headerName: 'Area (sqm)', width: 110 },
+  { field: 'windowCount', headerName: 'Windows', width: 90 },
+  {
+    field: 'hasNaturalLight',
+    headerName: 'Natural Light',
+    width: 120,
+    type: 'boolean',
+  },
+  {
+    field: 'hasProjector',
+    headerName: 'Projector',
+    width: 100,
+    type: 'boolean',
+  },
+  {
+    field: 'hasMicrophone',
+    headerName: 'Microphone',
+    width: 110,
+    type: 'boolean',
+  },
+  { field: 'hasCamera', headerName: 'Camera', width: 100, type: 'boolean' },
+  { field: 'hasAirConditioner', headerName: 'A/C', width: 80, type: 'boolean' },
+  {
+    field: 'hasNoiseCancelling',
+    headerName: 'Noise Cancel',
+    width: 120,
+    type: 'boolean',
+  },
+];
+
+export default function RoomTable() {
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editRoom, setEditRoom] = useState<Partial<Room>>({});
+  const [isNew, setIsNew] = useState(false);
+
+  const fetchRooms = async () => {
+    const res = await api.get('/room-features/rooms');
+    setRooms(res.data.data.rooms);
+  };
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+
+  const handleRowClick = (params: GridRowParams) => {
+    setEditRoom(params.row as Room);
+    setIsNew(false);
+    setDrawerOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditRoom({
+      roomNumber: '',
+      floor: 0,
+      roomType: '',
+      capacity: 0,
+      areaSqm: 0,
+      windowCount: 0,
+      hasNaturalLight: false,
+      hasProjector: false,
+      hasMicrophone: false,
+      hasCamera: false,
+      hasAirConditioner: false,
+      hasNoiseCancelling: false,
+    });
+    setIsNew(true);
+    setDrawerOpen(true);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setEditRoom({
+      ...editRoom,
+      [name]: type === 'checkbox' ? checked : value,
+    });
+  };
+
+  const handleSave = async () => {
+    if (isNew) {
+      await api.post('/room-features/rooms', editRoom);
+    } else if (editRoom.id) {
+      await api.put(`/room-features/rooms/${editRoom.id}`, editRoom);
+    }
+    setDrawerOpen(false);
+    fetchRooms();
+  };
+
+  const handleDelete = async () => {
+    if (editRoom.id) {
+      await api.delete(`/room-features/rooms/${editRoom.id}`);
+      setDrawerOpen(false);
+      fetchRooms();
+    }
+  };
+
+  return (
+    <Box>
+      <Button
+        variant='contained'
+        color='primary'
+        onClick={handleAdd}
+        sx={{ mb: 2 }}
+      >
+        Add Room
+      </Button>
+      <DataGrid
+        rows={rooms}
+        columns={columns}
+        autoHeight
+        pageSizeOptions={[10, 20, 50]}
+        onRowClick={handleRowClick}
+        sx={{ bgcolor: '#fff', borderRadius: 2 }}
+      />
+      <Drawer
+        anchor='right'
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      >
+        <Box sx={{ width: 400, p: 3 }}>
+          <Typography variant='h6' gutterBottom>
+            {isNew ? 'Add Room' : 'Edit Room'}
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              label='Room Number'
+              name='roomNumber'
+              value={editRoom.roomNumber || ''}
+              onChange={handleChange}
+              fullWidth
+            />
+            <TextField
+              label='Floor'
+              name='floor'
+              type='number'
+              value={editRoom.floor || 0}
+              onChange={handleChange}
+              fullWidth
+            />
+            <TextField
+              label='Type'
+              name='roomType'
+              value={editRoom.roomType || ''}
+              onChange={handleChange}
+              fullWidth
+            />
+            <TextField
+              label='Capacity'
+              name='capacity'
+              type='number'
+              value={editRoom.capacity || 0}
+              onChange={handleChange}
+              fullWidth
+            />
+            <TextField
+              label='Area (sqm)'
+              name='areaSqm'
+              type='number'
+              value={editRoom.areaSqm || 0}
+              onChange={handleChange}
+              fullWidth
+            />
+            <TextField
+              label='Windows'
+              name='windowCount'
+              type='number'
+              value={editRoom.windowCount || 0}
+              onChange={handleChange}
+              fullWidth
+            />
+            <Box display='flex' alignItems='center'>
+              <Checkbox
+                checked={!!editRoom.hasNaturalLight}
+                onChange={(e) =>
+                  setEditRoom({
+                    ...editRoom,
+                    hasNaturalLight: e.target.checked,
+                  })
+                }
+              />
+              <Typography variant='body2'>Natural Light</Typography>
+            </Box>
+            <Box display='flex' alignItems='center'>
+              <Checkbox
+                checked={!!editRoom.hasProjector}
+                onChange={(e) =>
+                  setEditRoom({ ...editRoom, hasProjector: e.target.checked })
+                }
+              />
+              <Typography variant='body2'>Projector</Typography>
+            </Box>
+            <Box display='flex' alignItems='center'>
+              <Checkbox
+                checked={!!editRoom.hasMicrophone}
+                onChange={(e) =>
+                  setEditRoom({ ...editRoom, hasMicrophone: e.target.checked })
+                }
+              />
+              <Typography variant='body2'>Microphone</Typography>
+            </Box>
+            <Box display='flex' alignItems='center'>
+              <Checkbox
+                checked={!!editRoom.hasCamera}
+                onChange={(e) =>
+                  setEditRoom({ ...editRoom, hasCamera: e.target.checked })
+                }
+              />
+              <Typography variant='body2'>Camera</Typography>
+            </Box>
+            <Box display='flex' alignItems='center'>
+              <Checkbox
+                checked={!!editRoom.hasAirConditioner}
+                onChange={(e) =>
+                  setEditRoom({
+                    ...editRoom,
+                    hasAirConditioner: e.target.checked,
+                  })
+                }
+              />
+              <Typography variant='body2'>A/C</Typography>
+            </Box>
+            <Box display='flex' alignItems='center'>
+              <Checkbox
+                checked={!!editRoom.hasNoiseCancelling}
+                onChange={(e) =>
+                  setEditRoom({
+                    ...editRoom,
+                    hasNoiseCancelling: e.target.checked,
+                  })
+                }
+              />
+              <Typography variant='body2'>Noise Cancel</Typography>
+            </Box>
+            <Stack direction='row' spacing={2}>
+              <Button variant='contained' color='primary' onClick={handleSave}>
+                Save
+              </Button>
+              {!isNew && (
+                <Button variant='outlined' color='error' onClick={handleDelete}>
+                  Delete
+                </Button>
+              )}
+            </Stack>
+          </Stack>
+        </Box>
+      </Drawer>
+    </Box>
+  );
+}
