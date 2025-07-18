@@ -71,8 +71,22 @@ export default function RoomTable() {
   const [isNew, setIsNew] = useState(false);
 
   const fetchRooms = async () => {
-    const res = await api.get('/room-features/rooms');
-    setRooms(res.data.data.rooms);
+    try {
+      const res = await api.get('/room-features/rooms');
+      setRooms(res.data.data.rooms);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const axiosError = error as {
+          response?: { data?: { message?: string } };
+        };
+        console.error(
+          'Room API error:',
+          axiosError.response?.data?.message || error.message || error
+        );
+      } else {
+        console.error('Room API error:', error);
+      }
+    }
   };
 
   useEffect(() => {

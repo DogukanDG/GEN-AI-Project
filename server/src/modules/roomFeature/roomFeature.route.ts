@@ -42,36 +42,6 @@ router.get(
   roomFeatureController.getAllRoomFeatures
 );
 
-// Get room feature by ID (Admin only)
-router.get(
-  '/:id',
-  authorizeUser,
-  requireAdmin,
-  getRoomFeatureValidation,
-  validateRequest,
-  roomFeatureController.getRoomFeatureById
-);
-
-// Update room feature (Admin only)
-router.put(
-  '/:id',
-  authorizeUser,
-  requireAdmin,
-  updateRoomFeatureValidation,
-  validateRequest,
-  roomFeatureController.updateRoomFeature
-);
-
-// Delete room feature (Admin only)
-router.delete(
-  '/:id',
-  authorizeUser,
-  requireAdmin,
-  deleteRoomFeatureValidation,
-  validateRequest,
-  roomFeatureController.deleteRoomFeature
-);
-
 // Room CRUD (Admin only)
 router.get(
   '/rooms',
@@ -106,6 +76,36 @@ router.delete(
   authorizeUser,
   requireAdmin,
   roomFeatureController.deleteRoom
+);
+
+// Get room feature by ID (Admin only)
+router.get(
+  '/:id',
+  authorizeUser,
+  requireAdmin,
+  getRoomFeatureValidation,
+  validateRequest,
+  roomFeatureController.getRoomFeatureById
+);
+
+// Update room feature (Admin only)
+router.put(
+  '/:id',
+  authorizeUser,
+  requireAdmin,
+  updateRoomFeatureValidation,
+  validateRequest,
+  roomFeatureController.updateRoomFeature
+);
+
+// Delete room feature (Admin only)
+router.delete(
+  '/:id',
+  authorizeUser,
+  requireAdmin,
+  deleteRoomFeatureValidation,
+  validateRequest,
+  roomFeatureController.deleteRoomFeature
 );
 
 export default router;
