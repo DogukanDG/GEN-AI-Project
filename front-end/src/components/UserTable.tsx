@@ -70,22 +70,41 @@ export default function UserTable() {
   };
 
   return (
-    <Box>
-      <Button
-        variant='contained'
-        color='primary'
-        onClick={handleAdd}
-        sx={{ mb: 2 }}
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        width: '100%',
+      }}
+    >
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 1100,
+          mx: 'auto',
+          mb: 1,
+          display: 'flex',
+          justifyContent: 'flex-start',
+        }}
       >
-        Add User
-      </Button>
+        <Button variant='contained' color='primary' onClick={handleAdd}>
+          Add User
+        </Button>
+      </Box>
       <DataGrid
         rows={users}
         columns={columns}
         autoHeight
         pageSizeOptions={[10, 20, 50]}
         onRowClick={handleRowClick}
-        sx={{ bgcolor: '#fff', borderRadius: 2 }}
+        sx={{
+          bgcolor: '#fff',
+          borderRadius: 2,
+          mx: 'auto',
+          width: '100%',
+          maxWidth: 1100,
+        }}
       />
       <Drawer
         anchor='right'

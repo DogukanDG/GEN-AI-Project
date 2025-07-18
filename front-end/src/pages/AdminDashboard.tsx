@@ -74,16 +74,24 @@ export default function AdminDashboard() {
       </Drawer>
       <Box
         component='main'
-        sx={{ flexGrow: 1, p: 3, ml: `${drawerWidth}px`, mt: 8 }}
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          mt: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          minHeight: 'calc(100vh - 64px)',
+        }}
       >
-        {/* Burada seçili sekmeye göre tablo ve detay paneli render edilecek */}
-        <Typography variant='h5' sx={{ mb: 2 }}>
-          {sections.find((s) => s.key === selectedSection)?.label}
-        </Typography>
-        {/* TODO: Tablo ve detay/edit paneli eklenecek */}
-        {selectedSection === 'users' && <UserTable />}
-        {selectedSection === 'reservations' && <ReservationTable />}
-        {selectedSection === 'rooms' && <RoomTable />}
+        <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
+          <Typography variant='h5' sx={{ mb: 2, textAlign: 'center' }}>
+            {sections.find((s) => s.key === selectedSection)?.label}
+          </Typography>
+          {selectedSection === 'users' && <UserTable />}
+          {selectedSection === 'reservations' && <ReservationTable />}
+          {selectedSection === 'rooms' && <RoomTable />}
+        </Box>
       </Box>
     </Box>
   );
