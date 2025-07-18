@@ -38,33 +38,33 @@ export const authService = {
     return response.data.data;
   },
 
-  // Get current user
   getCurrentUser: async (): Promise<User> => {
     const response = await api.get('/auth/me');
     return response.data.data;
   },
 
-  // Logout
   logout: () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
     window.location.href = '/';
   },
 
-  // Check if user is authenticated
   isAuthenticated: (): boolean => {
     return !!localStorage.getItem('authToken');
   },
 
-  // Get stored user
   getStoredUser: (): User | null => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
 
-  // Store auth data
   storeAuthData: (authData: AuthResponse) => {
     localStorage.setItem('authToken', authData.token);
     localStorage.setItem('user', JSON.stringify(authData.user));
-  }
+  },
+
+  callAdminStudio: async (): Promise<unknown> => {
+    const response = await api.get('/admin/studio');
+    return response.data;
+  },
 };

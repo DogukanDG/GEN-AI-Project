@@ -43,3 +43,25 @@ export async function isEmailRegistered(email: string): Promise<boolean> {
     throw new HttpError(500, 'Email could not be checked');
   }
 }
+
+export async function getAllUsers(): Promise<User[]> {
+  return await userRepository.findAllUsers();
+}
+
+export async function getUserById(id: number): Promise<User | null> {
+  return await userRepository.findUserById(id);
+}
+
+export async function updateUser(
+  id: number,
+  data: Partial<Omit<User, 'id'>>
+): Promise<User> {
+  if (data.password) {
+    data.password = await authService.hashPassword(data.password);
+  }
+  return await userRepository.updateUser(id, data);
+}
+
+export async function deleteUser(id: number): Promise<User> {
+  return await userRepository.deleteUser(id);
+}

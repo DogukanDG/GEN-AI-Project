@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import reservationController from './reservation.controller';
-import { 
-  createReservationValidation, 
-  updateReservationValidation, 
-  getReservationsValidation 
+import {
+  createReservationValidation,
+  updateReservationValidation,
+  getReservationsValidation,
 } from './reservation.validation';
 import { validateRequest } from '../../middlewares/request-validator.middleware';
+import { requireAdmin } from '../../middlewares/role-authorization.middleware';
+import { authorizeUser } from '../../middlewares/authorize-user.middleware';
 
 const router = Router();
 
@@ -27,13 +29,34 @@ router.get('/upcoming', reservationController.getUpcomingReservations);
 router.get('/user/:email', reservationController.getUserReservations);
 
 // Get all reservations with optional filters
-router.get('/', getReservationsValidation, validateRequest, reservationController.getReservations);
+router.get(
+  '/',
+  authorizeUser,
+  requireAdmin,
+  getReservationsValidation,
+  validateRequest,
+  reservationController.getReservations
+);
 
 // Create a new reservation
-router.post('/', createReservationValidation, validateRequest, reservationController.createReservation);
+router.post(
+  '/',
+  authorizeUser,
+  requireAdmin,
+  createReservationValidation,
+  validateRequest,
+  reservationController.createReservation
+);
 
 // Update a reservation
-router.put('/:id', updateReservationValidation, validateRequest, reservationController.updateReservation);
+router.put(
+  '/:id',
+  authorizeUser,
+  requireAdmin,
+  updateReservationValidation,
+  validateRequest,
+  reservationController.updateReservation
+);
 
 // Cancel a reservation
 router.patch('/:id/cancel', reservationController.cancelReservation);
@@ -42,6 +65,11 @@ router.patch('/:id/cancel', reservationController.cancelReservation);
 router.get('/:id', reservationController.getReservationById);
 
 // Delete a reservation
-router.delete('/:id', reservationController.deleteReservation);
+router.delete(
+  '/:id',
+  authorizeUser,
+  requireAdmin,
+  reservationController.deleteReservation
+);
 
 export default router;

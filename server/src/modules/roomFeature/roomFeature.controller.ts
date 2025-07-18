@@ -26,20 +26,23 @@ export class RoomFeatureController {
         hasNoiseCancelling,
       } = req.body;
 
-      const roomFeature = await this.roomFeatureService.createRoomFeature(user.id, {
-        roomNumber,
-        floor,
-        roomType,
-        capacity,
-        areaSqm,
-        windowCount,
-        hasNaturalLight,
-        hasProjector,
-        hasMicrophone,
-        hasCamera,
-        hasAirConditioner,
-        hasNoiseCancelling,
-      });
+      const roomFeature = await this.roomFeatureService.createRoomFeature(
+        user.id,
+        {
+          roomNumber,
+          floor,
+          roomType,
+          capacity,
+          areaSqm,
+          windowCount,
+          hasNaturalLight,
+          hasProjector,
+          hasMicrophone,
+          hasCamera,
+          hasAirConditioner,
+          hasNoiseCancelling,
+        }
+      );
 
       res.status(201).json({
         success: true,
@@ -54,7 +57,9 @@ export class RoomFeatureController {
   getRoomFeatureById = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const roomFeature = await this.roomFeatureService.getRoomFeatureById(parseInt(id));
+      const roomFeature = await this.roomFeatureService.getRoomFeatureById(
+        parseInt(id)
+      );
 
       res.status(200).json({
         success: true,
@@ -68,7 +73,9 @@ export class RoomFeatureController {
   getUserRoomFeatures = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = req.user as CustomJwtPayload;
-      const roomFeatures = await this.roomFeatureService.getUserRoomFeatures(user.id);
+      const roomFeatures = await this.roomFeatureService.getUserRoomFeatures(
+        user.id
+      );
 
       res.status(200).json({
         success: true,
@@ -154,6 +161,77 @@ export class RoomFeatureController {
       });
     } catch (error) {
       throw error;
+    }
+  };
+
+  // Room CRUD for admin panel
+  getAllRooms = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const rooms = await this.roomFeatureService.getAllRoomFeatures();
+      res.status(200).json({ status: 'success', data: { rooms } });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ status: 'fail', message: 'Failed to fetch rooms' });
+    }
+  };
+
+  getRoomById = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = parseInt(req.params.id);
+      const room = await this.roomFeatureService.getRoomFeatureById(id);
+      if (!room) {
+        res.status(404).json({ status: 'fail', message: 'Room not found' });
+        return;
+      }
+      res.status(200).json({ status: 'success', data: { room } });
+    } catch (error) {
+      res.status(500).json({ status: 'fail', message: 'Failed to fetch room' });
+    }
+  };
+
+  createRoom = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = req.user as CustomJwtPayload;
+      const newRoom = await this.roomFeatureService.createRoomFeature(
+        user.id,
+        req.body
+      );
+      res.status(201).json({ status: 'success', data: { room: newRoom } });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ status: 'fail', message: 'Failed to create room' });
+    }
+  };
+
+  updateRoom = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = req.user as CustomJwtPayload;
+      const id = parseInt(req.params.id);
+      const updatedRoom = await this.roomFeatureService.updateRoomFeature(
+        id,
+        user.id,
+        req.body
+      );
+      res.status(200).json({ status: 'success', data: { room: updatedRoom } });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ status: 'fail', message: 'Failed to update room' });
+    }
+  };
+
+  deleteRoom = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = req.user as CustomJwtPayload;
+      const id = parseInt(req.params.id);
+      await this.roomFeatureService.deleteRoomFeature(id, user.id);
+      res.status(204).send();
+    } catch (error) {
+      res
+        .status(500)
+        .json({ status: 'fail', message: 'Failed to delete room' });
     }
   };
 }

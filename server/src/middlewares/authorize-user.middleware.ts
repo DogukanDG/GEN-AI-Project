@@ -15,7 +15,13 @@ export const authorizeUser = (
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.get('Authorization')?.replace('Bearer ', '');
+  const authHeader = req.get('Authorization');
+  console.log('Gelen Authorization header:', authHeader);
+  let token = '';
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7).trim();
+  }
+  console.log('Çıkarılan token:', token);
   if (!token) {
     throw new HttpError(401, 'Token could not be found');
   }
