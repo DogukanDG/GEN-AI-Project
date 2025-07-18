@@ -168,127 +168,159 @@ export default function RoomTable() {
         onClose={() => setDrawerOpen(false)}
         PaperProps={{
           sx: {
-            pt: 6,
+            pt: 0,
             width: 400,
             boxShadow: 6,
             borderRadius: '16px 0 0 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            p: 0,
           },
         }}
       >
-        <Box sx={{ p: 3 }}>
-          <Typography variant='h6' gutterBottom>
-            {isNew ? 'Add Room' : 'Edit Room'}
-          </Typography>
-          <Stack spacing={2}>
-            <TextField
-              label='Room Number'
-              name='roomNumber'
-              value={editRoom.roomNumber || ''}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label='Floor'
-              name='floor'
-              type='number'
-              value={editRoom.floor || 0}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label='Type'
-              name='roomType'
-              value={editRoom.roomType || ''}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label='Capacity'
-              name='capacity'
-              type='number'
-              value={editRoom.capacity || 0}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label='Area (sqm)'
-              name='areaSqm'
-              type='number'
-              value={editRoom.areaSqm || 0}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label='Windows'
-              name='windowCount'
-              type='number'
-              value={editRoom.windowCount || 0}
-              onChange={handleChange}
-              fullWidth
-            />
-            <Box display='flex' alignItems='center'>
-              <Checkbox
-                checked={!!editRoom.hasNaturalLight}
-                onChange={(e) =>
-                  setEditRoom({
-                    ...editRoom,
-                    hasNaturalLight: e.target.checked,
-                  })
-                }
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            p: 0,
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ p: 3, borderBottom: '1px solid #eee', bgcolor: '#fff' }}>
+            <Typography variant='h6' gutterBottom>
+              {isNew ? 'Add Room' : 'Edit Room'}
+            </Typography>
+          </Box>
+          {/* Scrollable Form */}
+          <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+            <Stack spacing={2}>
+              <TextField
+                label='Room Number'
+                name='roomNumber'
+                value={editRoom.roomNumber || ''}
+                onChange={handleChange}
+                fullWidth
               />
-              <Typography variant='body2'>Natural Light</Typography>
-            </Box>
-            <Box display='flex' alignItems='center'>
-              <Checkbox
-                checked={!!editRoom.hasProjector}
-                onChange={(e) =>
-                  setEditRoom({ ...editRoom, hasProjector: e.target.checked })
-                }
+              <TextField
+                label='Floor'
+                name='floor'
+                type='number'
+                value={editRoom.floor || 0}
+                onChange={handleChange}
+                fullWidth
               />
-              <Typography variant='body2'>Projector</Typography>
-            </Box>
-            <Box display='flex' alignItems='center'>
-              <Checkbox
-                checked={!!editRoom.hasMicrophone}
-                onChange={(e) =>
-                  setEditRoom({ ...editRoom, hasMicrophone: e.target.checked })
-                }
+              <TextField
+                label='Type'
+                name='roomType'
+                value={editRoom.roomType || ''}
+                onChange={handleChange}
+                fullWidth
               />
-              <Typography variant='body2'>Microphone</Typography>
-            </Box>
-            <Box display='flex' alignItems='center'>
-              <Checkbox
-                checked={!!editRoom.hasCamera}
-                onChange={(e) =>
-                  setEditRoom({ ...editRoom, hasCamera: e.target.checked })
-                }
+              <TextField
+                label='Capacity'
+                name='capacity'
+                type='number'
+                value={editRoom.capacity || 0}
+                onChange={handleChange}
+                fullWidth
               />
-              <Typography variant='body2'>Camera</Typography>
-            </Box>
-            <Box display='flex' alignItems='center'>
-              <Checkbox
-                checked={!!editRoom.hasAirConditioner}
-                onChange={(e) =>
-                  setEditRoom({
-                    ...editRoom,
-                    hasAirConditioner: e.target.checked,
-                  })
-                }
+              <TextField
+                label='Area (sqm)'
+                name='areaSqm'
+                type='number'
+                value={editRoom.areaSqm || 0}
+                onChange={handleChange}
+                fullWidth
               />
-              <Typography variant='body2'>A/C</Typography>
-            </Box>
-            <Box display='flex' alignItems='center'>
-              <Checkbox
-                checked={!!editRoom.hasNoiseCancelling}
-                onChange={(e) =>
-                  setEditRoom({
-                    ...editRoom,
-                    hasNoiseCancelling: e.target.checked,
-                  })
-                }
+              <TextField
+                label='Windows'
+                name='windowCount'
+                type='number'
+                value={editRoom.windowCount || 0}
+                onChange={handleChange}
+                fullWidth
               />
-              <Typography variant='body2'>Noise Cancel</Typography>
-            </Box>
+              <Box display='flex' alignItems='center'>
+                <Checkbox
+                  checked={!!editRoom.hasNaturalLight}
+                  onChange={(e) =>
+                    setEditRoom({
+                      ...editRoom,
+                      hasNaturalLight: e.target.checked,
+                    })
+                  }
+                />
+                <Typography variant='body2'>Natural Light</Typography>
+              </Box>
+              <Box display='flex' alignItems='center'>
+                <Checkbox
+                  checked={!!editRoom.hasProjector}
+                  onChange={(e) =>
+                    setEditRoom({ ...editRoom, hasProjector: e.target.checked })
+                  }
+                />
+                <Typography variant='body2'>Projector</Typography>
+              </Box>
+              <Box display='flex' alignItems='center'>
+                <Checkbox
+                  checked={!!editRoom.hasMicrophone}
+                  onChange={(e) =>
+                    setEditRoom({
+                      ...editRoom,
+                      hasMicrophone: e.target.checked,
+                    })
+                  }
+                />
+                <Typography variant='body2'>Microphone</Typography>
+              </Box>
+              <Box display='flex' alignItems='center'>
+                <Checkbox
+                  checked={!!editRoom.hasCamera}
+                  onChange={(e) =>
+                    setEditRoom({ ...editRoom, hasCamera: e.target.checked })
+                  }
+                />
+                <Typography variant='body2'>Camera</Typography>
+              </Box>
+              <Box display='flex' alignItems='center'>
+                <Checkbox
+                  checked={!!editRoom.hasAirConditioner}
+                  onChange={(e) =>
+                    setEditRoom({
+                      ...editRoom,
+                      hasAirConditioner: e.target.checked,
+                    })
+                  }
+                />
+                <Typography variant='body2'>A/C</Typography>
+              </Box>
+              <Box display='flex' alignItems='center'>
+                <Checkbox
+                  checked={!!editRoom.hasNoiseCancelling}
+                  onChange={(e) =>
+                    setEditRoom({
+                      ...editRoom,
+                      hasNoiseCancelling: e.target.checked,
+                    })
+                  }
+                />
+                <Typography variant='body2'>Noise Cancel</Typography>
+              </Box>
+            </Stack>
+          </Box>
+          {/* Sticky Footer */}
+          <Box
+            sx={{
+              position: 'sticky',
+              bottom: 0,
+              p: 3,
+              borderTop: '1px solid #eee',
+              bgcolor: '#fff',
+              zIndex: 1,
+            }}
+          >
             <Stack direction='row' spacing={2}>
               <Button variant='contained' color='primary' onClick={handleSave}>
                 Save
@@ -299,7 +331,7 @@ export default function RoomTable() {
                 </Button>
               )}
             </Stack>
-          </Stack>
+          </Box>
         </Box>
       </Drawer>
     </Box>
