@@ -315,6 +315,10 @@ export class ReservationService {
       endDatetime
     );
   }
+
+  async getReservedSlots(roomNumber: string, date: string) {
+    return await reservationRepository.getReservedSlots(roomNumber, date);
+  }
 }
 
 export default new ReservationService();

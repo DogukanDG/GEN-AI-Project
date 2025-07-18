@@ -189,6 +189,58 @@ class ReservationRepository {
             take: limit
         });
     }
+    async getReservedSlots(roomNumber, date) {
+        // Parse the date to get start and end of the day in UTC
+        const startOfDay = new Date(date + 'T00:00:00.000Z');
+        const endOfDay = new Date(date + 'T23:59:59.999Z');
+        const reservations = await prisma.reservation.findMany({
+            where: {
+                roomNumber,
+                bookingStatus: 'confirmed',
+                OR: [
+                    {
+                        // Reservation starts on this day
+                        startDatetime: {
+                            gte: startOfDay,
+                            lte: endOfDay
+                        }
+                    },
+                    {
+                        // Reservation ends on this day
+                        endDatetime: {
+                            gte: startOfDay,
+                            lte: endOfDay
+                        }
+                    },
+                    {
+                        // Reservation spans across this day
+                        AND: [
+                            { startDatetime: { lte: startOfDay } },
+                            { endDatetime: { gte: endOfDay } }
+                        ]
+                    }
+                ]
+            },
+            select: {
+                startDatetime: true,
+                endDatetime: true
+            },
+            orderBy: {
+                startDatetime: 'asc'
+            }
+        });
+        // Convert to time slot strings (HH:MM-HH:MM format)
+        return reservations.map(reservation => {
+            // Use UTC time to avoid timezone issues
+            const startHours = reservation.startDatetime.getUTCHours().toString().padStart(2, '0');
+            const startMinutes = reservation.startDatetime.getUTCMinutes().toString().padStart(2, '0');
+            const endHours = reservation.endDatetime.getUTCHours().toString().padStart(2, '0');
+            const endMinutes = reservation.endDatetime.getUTCMinutes().toString().padStart(2, '0');
+            const startTime = `${startHours}:${startMinutes}`;
+            const endTime = `${endHours}:${endMinutes}`;
+            return `${startTime}-${endTime}`;
+        });
+    }
 }
 exports.ReservationRepository = ReservationRepository;
 exports.default = new ReservationRepository();
