@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   TextField,
@@ -63,7 +63,7 @@ function HomePage() {
     severity: "success" as "success" | "error",
   });
   const [reservedSlots, setReservedSlots] = useState<string[]>([]);
-  const [dateChangeTimeout, setDateChangeTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [dateChangeTimeout, setDateChangeTimeout] = useState<number | null>(null);
   const timeSlotPeriods = [
     { label: "08:00 - 10:00", start: "08:00", end: "10:00" },
     { label: "10:00 - 12:00", start: "10:00", end: "12:00" },
@@ -72,6 +72,31 @@ function HomePage() {
     { label: "16:00 - 18:00", start: "16:00", end: "18:00" },
     { label: "18:00 - 20:00", start: "18:00", end: "20:00" },
   ];
+
+  // Helper function to check if time slots overlap
+  const timeSlotOverlaps = (slotStart: string, slotEnd: string, reservedSlot: string): boolean => {
+    try {
+      // Parse the reserved slot (format: "HH:MM-HH:MM")
+      const [reservedStart, reservedEnd] = reservedSlot.split('-');
+      
+      // Convert times to minutes for easier comparison
+      const timeToMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+      
+      const slotStartMin = timeToMinutes(slotStart);
+      const slotEndMin = timeToMinutes(slotEnd);
+      const reservedStartMin = timeToMinutes(reservedStart);
+      const reservedEndMin = timeToMinutes(reservedEnd);
+      
+      // Check for overlap: slot starts before reserved ends AND slot ends after reserved starts
+      return slotStartMin < reservedEndMin && slotEndMin > reservedStartMin;
+    } catch (error) {
+      console.error('Error parsing time slot:', error);
+      return false;
+    }
+  };
 
   const pickerFieldSx = {
     // match the dark background of the select box
@@ -232,7 +257,7 @@ function HomePage() {
     }
 
     // Set new timeout to debounce API calls
-    const timeout = setTimeout(async () => {
+    const timeout = window.setTimeout(async () => {
       if (selectedRoom && date) {
         try {
           const reserved = await roomService.getReservedSlots({
