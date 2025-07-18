@@ -24,14 +24,14 @@ interface Reservation {
 }
 
 const columns: GridColDef[] = [
-  { field: 'id', headerName: 'ID', width: 70 },
-  { field: 'roomNumber', headerName: 'Room', width: 100 },
-  { field: 'userName', headerName: 'User Name', width: 150 },
-  { field: 'userEmail', headerName: 'User Email', width: 180 },
-  { field: 'startDatetime', headerName: 'Start', width: 160 },
-  { field: 'endDatetime', headerName: 'End', width: 160 },
-  { field: 'bookingStatus', headerName: 'Status', width: 110 },
-  { field: 'purpose', headerName: 'Purpose', width: 180 },
+  { field: 'id', headerName: 'ID', flex: 0.5 },
+  { field: 'roomNumber', headerName: 'Room', flex: 1 },
+  { field: 'userName', headerName: 'User Name', flex: 1 },
+  { field: 'userEmail', headerName: 'User Email', flex: 2 },
+  { field: 'startDatetime', headerName: 'Start', flex: 1.2 },
+  { field: 'endDatetime', headerName: 'End', flex: 1.2 },
+  { field: 'bookingStatus', headerName: 'Status', flex: 1 },
+  { field: 'purpose', headerName: 'Purpose', flex: 1.5 },
 ];
 
 export default function ReservationTable() {
@@ -117,7 +117,7 @@ export default function ReservationTable() {
         autoHeight
         pageSizeOptions={[10, 20, 50]}
         onRowClick={handleRowClick}
-        sx={{ bgcolor: '#fff', borderRadius: 2 }}
+        sx={{ bgcolor: '#fff', borderRadius: 2, mx: 'auto', width: '100%' }}
       />
       <Drawer
         anchor='right'

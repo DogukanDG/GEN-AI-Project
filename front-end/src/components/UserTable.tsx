@@ -13,11 +13,11 @@ import { userApi } from '../services/api';
 import type { User } from '../services/authService';
 
 const columns: GridColDef[] = [
-  { field: 'id', headerName: 'ID', width: 70 },
-  { field: 'name', headerName: 'Name', width: 130 },
-  { field: 'surname', headerName: 'Surname', width: 130 },
-  { field: 'email', headerName: 'Email', width: 200 },
-  { field: 'role', headerName: 'Role', width: 100 },
+  { field: 'id', headerName: 'ID', flex: 0.5 },
+  { field: 'name', headerName: 'Name', flex: 1 },
+  { field: 'surname', headerName: 'Surname', flex: 1 },
+  { field: 'email', headerName: 'Email', flex: 2 },
+  { field: 'role', headerName: 'Role', flex: 1 },
 ];
 
 export default function UserTable() {
@@ -98,13 +98,7 @@ export default function UserTable() {
         autoHeight
         pageSizeOptions={[10, 20, 50]}
         onRowClick={handleRowClick}
-        sx={{
-          bgcolor: '#fff',
-          borderRadius: 2,
-          mx: 'auto',
-          width: '100%',
-          maxWidth: 1100,
-        }}
+        sx={{ bgcolor: '#fff', borderRadius: 2, mx: 'auto', width: '100%' }}
       />
       <Drawer
         anchor='right'
