@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import dummyResponse from "../../../server/src/data/dummy_response.json";
 import {
   Box,
   TextField,
@@ -86,31 +85,8 @@ function HomePage() {
     "&:hover fieldset": { borderColor: "#555" },
   };
 
-  function fixNulls(obj: any) {
-    if (Array.isArray(obj)) {
-      return obj.map(fixNulls);
-    } else if (obj && typeof obj === "object") {
-      const newObj: any = {};
-      for (const key in obj) {
-        if (obj[key] === null) {
-          newObj[key] = undefined;
-        } else {
-          newObj[key] = fixNulls(obj[key]);
-        }
-      }
-      return newObj;
-    }
-    return obj;
-  }
   useEffect(() => {
     // Get user info for pre-filling
-    setMessages([
-      {
-        role: "assistant-rooms",
-        content: dummyResponse.message,
-        data: dummyResponse,
-      },
-    ]);
     const user = authService.getStoredUser();
     if (user) {
       setBookingDetails((prev) => ({
@@ -580,29 +556,6 @@ function HomePage() {
             sx={{ height: "60px", minWidth: "100px" }} // Yüksekliği artır
           >
             Search
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "assistant-rooms",
-                  content: dummyResponse.message,
-                  data: fixNulls(dummyResponse),
-                },
-              ]);
-              setBookingDetails((prev) => ({
-                ...prev,
-                startDatetime: fixNulls(dummyResponse).requirements?.date || "",
-                startTime:
-                  fixNulls(dummyResponse).requirements?.startTime || "",
-                endTime: fixNulls(dummyResponse).requirements?.endTime || "",
-              }));
-            }}
-            sx={{ height: "60px", minWidth: "140px" }} // Yüksekliği artır
-          >
-            Show Dummy Rooms
           </Button>
         </Box>
 

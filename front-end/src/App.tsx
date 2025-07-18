@@ -4,29 +4,54 @@ import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import HomePage from "./pages/HomePage";
 import MyBookingsPage from "./pages/MyBookingsPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoute";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* İlk açılan rota LoginPage olacak */}
+        {/* Public routes - accessible without authentication */}
         <Route
           path="/"
-          element={<LoginPage />}
-        />
-        <Route
-          path="/homepage"
-          element={<HomePage />}
-        />
-        <Route
-          path="/mybookings"
-          element={<MyBookingsPage />}
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
         />
         <Route
           path="/signup"
-          element={<SignUpPage />}
-        />{" "}
-        {/* Opsiyonel */}
+          element={
+            <PublicRoute>
+              <SignUpPage />
+            </PublicRoute>
+          }
+        />
+        
+        {/* Protected routes - require authentication */}
+        <Route
+          path="/homepage"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mybookings"
+          element={
+            <ProtectedRoute>
+              <MyBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Catch all route - redirect to login if no match */}
+        <Route
+          path="*"
+          element={<LoginPage />}
+        />
       </Routes>
     </BrowserRouter>
   );

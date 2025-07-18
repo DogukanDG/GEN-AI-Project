@@ -49,15 +49,15 @@ function MyBookingsPage() {
       
       const user = authService.getStoredUser();
       if (!user?.email) {
-        setError('Kullanıcı bilgileri bulunamadı. Lütfen giriş yapın.');
+        setError('User information not found. Please log in.');
         return;
       }
 
       const data = await roomService.getUserReservations(user.email);
       setReservations(data);
     } catch (err: any) {
-      console.error('Rezervasyonlar yüklenirken hata:', err);
-      setError(err.response?.data?.message || 'Rezervasyonlar yüklenirken bir hata oluştu');
+      console.error('Error loading reservations:', err);
+      setError(err.response?.data?.message || 'An error occurred while loading reservations');
     } finally {
       setLoading(false);
     }
@@ -69,14 +69,14 @@ function MyBookingsPage() {
     try {
       setCancelling(true);
       await roomService.cancelReservation(selectedReservation.id);
-      setSuccess('Rezervasyon başarıyla iptal edildi');
+      setSuccess('Reservation cancelled successfully');
       setCancelDialogOpen(false);
       setSelectedReservation(null);
-      // Rezervasyon listesini yenile
+      // Refresh the reservation list
       loadReservations();
     } catch (err: any) {
-      console.error('Rezervasyon iptal edilirken hata:', err);
-      setError(err.response?.data?.message || 'Rezervasyon iptal edilirken bir hata oluştu');
+      console.error('Error cancelling reservation:', err);
+      setError(err.response?.data?.message || 'An error occurred while cancelling the reservation');
     } finally {
       setCancelling(false);
     }
@@ -88,7 +88,7 @@ function MyBookingsPage() {
   };
 
   const formatDateTime = (dateTime: string) => {
-    return new Date(dateTime).toLocaleString('tr-TR', {
+    return new Date(dateTime).toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -113,11 +113,11 @@ function MyBookingsPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return 'Onaylandı';
+        return 'Confirmed';
       case 'cancelled':
-        return 'İptal Edildi';
+        return 'Cancelled';
       case 'pending':
-        return 'Beklemede';
+        return 'Pending';
       default:
         return status;
     }
@@ -148,7 +148,7 @@ function MyBookingsPage() {
         <Box sx={{ mt: 4, mb: 4 }}>
           <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <CalendarIcon />
-            Rezervasyonlarım
+            My Reservations
           </Typography>
           
           {error && (
@@ -160,10 +160,10 @@ function MyBookingsPage() {
           {reservations.length === 0 ? (
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="h6" color="text.secondary">
-                Henüz rezervasyonunuz bulunmuyor.
+                You don't have any reservations yet.
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Ana sayfadan oda arayarak rezervasyon yapabilirsiniz.
+                You can make a reservation by searching for rooms from the home page.
               </Typography>
             </Paper>
           ) : (
@@ -201,16 +201,14 @@ function MyBookingsPage() {
                       
                       {reservation.purpose && (
                         <Typography variant="body2" sx={{ mt: 2 }}>
-                          <strong>Amaç:</strong> {reservation.purpose}
+                          <strong>Purpose:</strong> {reservation.purpose}
                         </Typography>
                       )}
                       
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        <strong>Konum:</strong> {reservation.room?.location || 'Belirtilmemiş'}
-                      </Typography>
+                
                       
                       <Typography variant="body2" color="text.secondary">
-                        <strong>Kapasite:</strong> {reservation.room?.capacity || reservation.roomFeature?.capacity} kişi
+                        <strong>Capacity:</strong> {reservation.room?.capacity || reservation.roomFeature?.capacity} people
                       </Typography>
                     </CardContent>
                     
@@ -222,7 +220,7 @@ function MyBookingsPage() {
                           startIcon={<DeleteIcon />}
                           onClick={() => openCancelDialog(reservation)}
                         >
-                          İptal Et
+                          Cancel
                         </Button>
                       )}
                     </CardActions>
@@ -240,11 +238,11 @@ function MyBookingsPage() {
           aria-labelledby="cancel-dialog-title"
         >
           <DialogTitle id="cancel-dialog-title">
-            Rezervasyonu İptal Et
+            Cancel Reservation
           </DialogTitle>
           <DialogContent>
             <Typography>
-              Bu rezervasyonu iptal etmek istediğinizden emin misiniz?
+              Are you sure you want to cancel this reservation?
             </Typography>
             {selectedReservation && (
               <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
@@ -257,7 +255,7 @@ function MyBookingsPage() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setCancelDialogOpen(false)} disabled={cancelling}>
-              Vazgeç
+              Cancel
             </Button>
             <Button 
               onClick={handleCancelReservation} 
@@ -265,7 +263,7 @@ function MyBookingsPage() {
               disabled={cancelling}
               startIcon={cancelling ? <CircularProgress size={16} /> : <DeleteIcon />}
             >
-              {cancelling ? 'İptal Ediliyor...' : 'İptal Et'}
+              {cancelling ? 'Cancelling...' : 'Cancel Reservation'}
             </Button>
           </DialogActions>
         </Dialog>
