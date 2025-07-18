@@ -100,8 +100,16 @@ export default function UserTable() {
         anchor='right'
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        PaperProps={{
+          sx: {
+            pt: 6,
+            width: 350,
+            boxShadow: 6,
+            borderRadius: '16px 0 0 16px',
+          },
+        }}
       >
-        <Box sx={{ width: 350, p: 3 }}>
+        <Box sx={{ p: 3 }}>
           <Typography variant='h6' gutterBottom>
             {isNew ? 'Add User' : 'Edit User'}
           </Typography>

@@ -123,8 +123,16 @@ export default function ReservationTable() {
         anchor='right'
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        PaperProps={{
+          sx: {
+            pt: 6,
+            width: 400,
+            boxShadow: 6,
+            borderRadius: '16px 0 0 16px',
+          },
+        }}
       >
-        <Box sx={{ width: 400, p: 3 }}>
+        <Box sx={{ p: 3 }}>
           <Typography variant='h6' gutterBottom>
             {isNew ? 'Add Reservation' : 'Edit Reservation'}
           </Typography>
