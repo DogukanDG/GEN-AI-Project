@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { RoomFeatureController } from './roomFeature.controller';
 import { authorizeUser } from '../../middlewares/authorize-user.middleware';
-import { requireAdmin, setUserRole } from '../../middlewares/role-authorization.middleware';
+import {
+  requireAdmin,
+  setUserRole,
+} from '../../middlewares/role-authorization.middleware';
 import { validateRequest } from '../../middlewares/request-validator.middleware';
 import {
   createRoomFeatureValidation,
@@ -31,19 +34,55 @@ router.get(
   roomFeatureController.getUserRoomFeatures
 );
 
-// Get all room features (Protected - all authenticated users can view)
+// Get all room features (Admin only)
 router.get(
   '/all',
   authorizeUser,
-  setUserRole,
+  requireAdmin,
   roomFeatureController.getAllRoomFeatures
 );
 
-// Get room feature by ID (Protected - all authenticated users can view)
+// Room CRUD (Admin only)
+router.get(
+  '/rooms',
+  authorizeUser,
+  requireAdmin,
+  roomFeatureController.getAllRooms
+);
+router.get(
+  '/rooms/:id',
+  authorizeUser,
+  requireAdmin,
+  roomFeatureController.getRoomById
+);
+router.post(
+  '/rooms',
+  authorizeUser,
+  requireAdmin,
+  createRoomFeatureValidation,
+  validateRequest,
+  roomFeatureController.createRoom
+);
+router.put(
+  '/rooms/:id',
+  authorizeUser,
+  requireAdmin,
+  updateRoomFeatureValidation,
+  validateRequest,
+  roomFeatureController.updateRoom
+);
+router.delete(
+  '/rooms/:id',
+  authorizeUser,
+  requireAdmin,
+  roomFeatureController.deleteRoom
+);
+
+// Get room feature by ID (Admin only)
 router.get(
   '/:id',
   authorizeUser,
-  setUserRole,
+  requireAdmin,
   getRoomFeatureValidation,
   validateRequest,
   roomFeatureController.getRoomFeatureById

@@ -1,18 +1,18 @@
 import { Router } from 'express';
 import reservationController from './reservation.controller';
-import { 
-  createReservationValidation, 
-  updateReservationValidation, 
-  getReservationsValidation 
+import {
+  createReservationValidation,
+  updateReservationValidation,
+  getReservationsValidation,
 } from './reservation.validation';
 import { validateRequest } from '../../middlewares/request-validator.middleware';
+import { requireAdmin } from '../../middlewares/role-authorization.middleware';
+import { authorizeUser } from '../../middlewares/authorize-user.middleware';
 import { apiLimiter, searchLimiter, reservationLimiter } from '../../middlewares/rate-limiter.middleware';
 
 const router = Router();
 
-// Apply general rate limiting to all reservation routes
 router.use(apiLimiter);
-
 // Test endpoint
 router.get('/test', (req, res) => {
   res.json({ message: 'Reservation routes working!' });
@@ -34,21 +34,49 @@ router.get('/upcoming', reservationController.getUpcomingReservations);
 router.get('/user/:email', reservationController.getUserReservations);
 
 // Get all reservations with optional filters
-router.get('/', getReservationsValidation, validateRequest, reservationController.getReservations);
+router.get(
+  '/',
+  authorizeUser,
+  requireAdmin,
+  getReservationsValidation,
+  validateRequest,
+  reservationController.getReservations
+);
 
-// Create a new reservation - with reservation rate limiting
-router.post('/', reservationLimiter, createReservationValidation, validateRequest, reservationController.createReservation);
+// Create a new reservation
+router.post(
+  '/',
+  authorizeUser,
+  requireAdmin,
+  reservationLimiter,
+  createReservationValidation,
+  validateRequest,
+  reservationController.createReservation
+);
 
-// Update a reservation - with reservation rate limiting
-router.put('/:id', reservationLimiter, updateReservationValidation, validateRequest, reservationController.updateReservation);
+// Update a reservation
+router.put(
+  '/:id',
+  authorizeUser,
+  reservationLimiter,
+  requireAdmin,
+  updateReservationValidation,
+  validateRequest,
+  reservationController.updateReservation
+);
 
-// Cancel a reservation - with reservation rate limiting
-router.patch('/:id/cancel', reservationLimiter, reservationController.cancelReservation);
+// Cancel a reservation
+router.patch('/:id/cancel', reservationLimiter,reservationController.cancelReservation);
 
 // Get a specific reservation by ID (must be last due to /:id pattern)
 router.get('/:id', reservationController.getReservationById);
 
 // Delete a reservation
-router.delete('/:id', reservationController.deleteReservation);
+router.delete(
+  '/:id',
+  authorizeUser,
+  requireAdmin,
+  reservationController.deleteReservation
+);
 
 export default router;

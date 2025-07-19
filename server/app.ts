@@ -23,6 +23,7 @@ import userRoutes from './src/modules/user/user.route';
 import roomFeatureRoutes from './src/modules/roomFeature/roomFeature.route';
 import reservationRoutes from './src/modules/reservation/reservation.route';
 import { handleError } from './src/middlewares/error-handler.middleware';
+import adminRoutes from './src/modules/admin/admin.route';
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/room-features', roomFeatureRoutes);
 app.use('/api/v1/reservations', reservationRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 app.use(handleError);
 
@@ -70,24 +72,26 @@ app.use(handleError);
 app.get('/health', async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({ 
-      status: 'healthy', 
+    res.status(200).json({
+      status: 'healthy',
       database: 'connected',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(503).json({ 
-      status: 'unhealthy', 
+    res.status(503).json({
+      status: 'unhealthy',
       database: 'disconnected',
       error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
 
 const server = app.listen(process.env.PORT, () => {
   console.log(`🚀 Server is running on port ${process.env.PORT}`);
-  console.log(`📊 Health check available at http://localhost:${process.env.PORT}/health`);
+  console.log(
+    `📊 Health check available at http://localhost:${process.env.PORT}/health`
+  );
 });
 
 // Graceful shutdown

@@ -95,8 +95,28 @@ export interface CheckAvailabilityRequest {
   endDatetime: string;
 }
 
+// Reservation update
+export const updateReservation = async (
+  id: number,
+  data: Partial<Reservation>
+) => {
+  const response = await api.put(`/reservations/${id}`, data);
+  return response.data.data;
+};
+
+// Reservation delete
+export const deleteReservation = async (id: number) => {
+  await api.delete(`/reservations/${id}`);
+};
+
 export const roomService = {
-  // Get reserved time slots for a room and date
+  // AI-powered room search
+  searchRoomsWithAI: async (
+    request: RoomSearchRequest
+  ): Promise<RoomSearchResponse> => {
+    const response = await api.post("/reservations/search-ai", request);
+    return response.data.data;
+  },
   getReservedSlots: async ({
     roomNumber,
     date,
@@ -111,14 +131,6 @@ export const roomService = {
     );
     return response.data.data;
   },
-  // AI-powered room search
-  searchRoomsWithAI: async (
-    request: RoomSearchRequest
-  ): Promise<RoomSearchResponse> => {
-    const response = await api.post("/reservations/search-ai", request);
-    return response.data.data;
-  },
-
   // Check room availability
   checkAvailability: async (
     request: CheckAvailabilityRequest

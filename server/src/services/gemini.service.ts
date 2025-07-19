@@ -326,6 +326,12 @@ Return ONLY the normalized text, no explanations.
       }
     ]
 
+    Ranking criteria:
+    1. Capacity: Must accommodate the required number of people
+    2. Required features: Must have all explicitly requested features
+    3. Room type: Should match if specified
+    4. Additional features: Bonus points for extra useful features
+
     Return only the JSON array without any additional text or formatting.
     `;
 

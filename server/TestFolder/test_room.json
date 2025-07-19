@@ -1,0 +1,14 @@
+{
+    "roomNumber": "L.3.07",
+    "floor": 0,
+    "roomType": "classroom",
+    "capacity": 5,
+    "areaSqm": 10.0,
+    "windowCount": 0,
+    "hasNaturalLight": true,
+    "hasProjector": true,
+    "hasMicrophone": false,
+    "hasCamera": false,
+    "hasAirConditioner": true,
+    "hasNoiseCancelling": false
+}

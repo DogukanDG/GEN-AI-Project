@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import "./App.css";
-import LoginPage from "./pages/LoginPage";
-import SignUpPage from "./pages/SignUpPage";
-import HomePage from "./pages/HomePage";
-import MyBookingsPage from "./pages/MyBookingsPage";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import './App.css';
+import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+import HomePage from './pages/HomePage';
+import MyBookingsPage from './pages/MyBookingsPage';
+import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 
@@ -35,6 +36,14 @@ function App() {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

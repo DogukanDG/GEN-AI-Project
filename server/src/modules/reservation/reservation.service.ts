@@ -99,7 +99,6 @@ export class ReservationService {
     if (data.startDatetime || data.endDatetime) {
       const startTime = data.startDatetime || existingReservation.startDatetime;
       const endTime = data.endDatetime || existingReservation.endDatetime;
-
       const isAvailable = await reservationRepository.checkRoomAvailability(
         existingReservation.roomNumber,
         startTime,

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { User } from './authService';
 
 const API_BASE_URL = 'http://localhost:3000/api/v1';
 
@@ -36,5 +37,20 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// User CRUD API
+export const userApi = {
+  getAll: async (): Promise<User[]> =>
+    (await api.get('/users')).data.data.users,
+  getById: async (id: number): Promise<User> =>
+    (await api.get(`/users/${id}`)).data.data.user,
+  create: async (user: User): Promise<User> =>
+    (await api.post('/users/signup', user)).data.data.user,
+  update: async (id: number, user: Partial<User>): Promise<User> =>
+    (await api.put(`/users/${id}`, user)).data.data.user,
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/users/${id}`);
+  },
+};
 
 export default api;
