@@ -1,16 +1,26 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { authService } from '../services/authService';
+import { checkAuthStatus } from '../utils/auth';
 
 interface PublicRouteProps {
   children: React.ReactNode;
 }
 
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-  const isAuthenticated = authService.isAuthenticated();
+  const isAuthenticated = checkAuthStatus();
   
   if (isAuthenticated) {
     // If user is already authenticated, redirect to homepage
+    const user = localStorage.getItem('user');
+    if (user) {
+      const userData = JSON.parse(user);
+      // Redirect based on user role
+      if (userData.role === 'admin') {
+        return <Navigate to="/admin" replace />;
+      } else {
+        return <Navigate to="/homepage" replace />;
+      }
+    }
     return <Navigate to="/homepage" replace />;
   }
 

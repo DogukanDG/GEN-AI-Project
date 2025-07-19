@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { DataGrid } from '@mui/x-data-grid';
-import type { CreateReservationRequest } from '../services/roomService';
 import {
   Box,
   Button,
@@ -10,7 +9,7 @@ import {
   Typography,
   Stack,
 } from '@mui/material';
-import { roomService } from '../services/roomService';
+import { adminService } from '../services/adminService';
 
 interface Reservation {
   id: number;
@@ -21,6 +20,7 @@ interface Reservation {
   endDatetime: string;
   bookingStatus: string;
   purpose?: string;
+  userId?: number | null;
 }
 
 const columns: GridColDef[] = [
@@ -43,8 +43,12 @@ export default function ReservationTable() {
   const [isNew, setIsNew] = useState(false);
 
   const fetchReservations = async () => {
-    const data = await roomService.getReservations();
-    setReservations(data);
+    try {
+      const response = await adminService.getReservations();
+      setReservations(response.data);
+    } catch (error) {
+      console.error('Fetch reservations error:', error);
+    }
   };
 
   useEffect(() => {
@@ -76,28 +80,40 @@ export default function ReservationTable() {
   };
 
   const handleSave = async () => {
-    if (isNew) {
-      const req: CreateReservationRequest = {
-        roomNumber: editReservation.roomNumber || '',
-        userName: editReservation.userName || '',
-        userEmail: editReservation.userEmail || '',
-        startDatetime: editReservation.startDatetime || '',
-        endDatetime: editReservation.endDatetime || '',
-        purpose: editReservation.purpose || '',
+    try {
+      // Filter only necessary fields for reservation API
+      const reservationData = {
+        roomNumber: editReservation.roomNumber,
+        userName: editReservation.userName,
+        userEmail: editReservation.userEmail,
+        startDatetime: editReservation.startDatetime,
+        endDatetime: editReservation.endDatetime,
+        purpose: editReservation.purpose,
+        bookingStatus: editReservation.bookingStatus,
+        userId: editReservation.userId
       };
-      await roomService.createReservation(req);
-    } else if (editReservation.id) {
-      await roomService.updateReservation(editReservation.id, editReservation);
+
+      if (isNew) {
+        await adminService.createReservation(reservationData);
+      } else if (editReservation.id) {
+        await adminService.updateReservation(editReservation.id, reservationData);
+      }
+      setDrawerOpen(false);
+      fetchReservations();
+    } catch (error) {
+      console.error('Save reservation error:', error);
     }
-    setDrawerOpen(false);
-    fetchReservations();
   };
 
   const handleDelete = async () => {
-    if (editReservation.id) {
-      await roomService.deleteReservation(editReservation.id);
-      setDrawerOpen(false);
-      fetchReservations();
+    try {
+      if (editReservation.id) {
+        await adminService.deleteReservation(editReservation.id);
+        setDrawerOpen(false);
+        fetchReservations();
+      }
+    } catch (error) {
+      console.error('Delete reservation error:', error);
     }
   };
 

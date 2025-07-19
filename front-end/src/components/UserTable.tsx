@@ -9,7 +9,7 @@ import {
   Typography,
   Stack,
 } from '@mui/material';
-import { userApi } from '../services/api';
+import { adminService } from '../services/adminService';
 import type { User } from '../services/authService';
 
 const columns: GridColDef[] = [
@@ -27,8 +27,12 @@ export default function UserTable() {
   const [isNew, setIsNew] = useState(false);
 
   const fetchUsers = async () => {
-    const data = await userApi.getAll();
-    setUsers(data);
+    try {
+      const response = await adminService.getUsers();
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Fetch users error:', error);
+    }
   };
 
   useEffect(() => {
@@ -52,20 +56,29 @@ export default function UserTable() {
   };
 
   const handleSave = async () => {
-    if (isNew) {
-      await userApi.create(editUser as User);
-    } else if (editUser.id) {
-      await userApi.update(editUser.id, editUser);
+    try {
+      if (isNew) {
+        // Admin panel'de user creation için backend'de endpoint eklemeli
+        console.log('User creation not yet implemented in admin API');
+      } else if (editUser.id) {
+        await adminService.updateUser(editUser.id, editUser);
+      }
+      setDrawerOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Save user error:', error);
     }
-    setDrawerOpen(false);
-    fetchUsers();
   };
 
   const handleDelete = async () => {
-    if (editUser.id) {
-      await userApi.delete(editUser.id);
-      setDrawerOpen(false);
-      fetchUsers();
+    try {
+      if (editUser.id) {
+        await adminService.deleteUser(editUser.id);
+        setDrawerOpen(false);
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Delete user error:', error);
     }
   };
 

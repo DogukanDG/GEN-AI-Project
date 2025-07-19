@@ -1,13 +1,39 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import "./App.css";
-import LoginPage from "./pages/LoginPage";
-import SignUpPage from "./pages/SignUpPage";
-import HomePage from "./pages/HomePage";
-import MyBookingsPage from "./pages/MyBookingsPage";
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import './App.css';
+import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+import HomePage from './pages/HomePage';
+import MyBookingsPage from './pages/MyBookingsPage';
+import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
+import { initializeAuth } from './utils/auth';
 
 function App() {
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    // Initialize authentication on app start
+    initializeAuth();
+    setIsInitialized(true);
+  }, []);
+
+  // Show loading while initializing
+  if (!isInitialized) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -35,6 +61,14 @@ function App() {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

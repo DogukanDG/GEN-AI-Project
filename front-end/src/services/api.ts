@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { User } from './authService';
+import { clearAuthData } from '../utils/auth';
 
 const API_BASE_URL = 'http://localhost:3000/api/v1';
 
@@ -30,8 +31,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - redirect to login
-      localStorage.removeItem('authToken');
+      // Unauthorized - clear auth data and redirect to login
+      clearAuthData();
       window.location.href = '/';
     }
     return Promise.reject(error);

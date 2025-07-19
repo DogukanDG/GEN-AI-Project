@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { authService } from '../services/authService';
+import { checkAuthStatus, clearAuthData } from '../utils/auth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const isAuthenticated = authService.isAuthenticated();
+  const isAuthenticated = checkAuthStatus();
+  
+  useEffect(() => {
+    // Double-check authentication on component mount
+    if (!isAuthenticated) {
+      clearAuthData();
+    }
+  }, [isAuthenticated]);
   
   if (!isAuthenticated) {
     // If user is not authenticated, redirect to login page

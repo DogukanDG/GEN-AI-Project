@@ -4,6 +4,7 @@ import { Home as HomeIcon, CalendarToday as BookingsIcon, ExitToApp as LogoutIco
 import MenuIcon from "@mui/icons-material/Menu";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
+import { forceLogout } from "../utils/auth";
 import AppTheme from "../template/AppTheme";
 import ColorModeIconDropdown from "../template/ColorModeIconDropdown";
 
@@ -33,7 +34,25 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
   };
 
   const handleLogout = () => {
-    authService.logout();
+    try {
+      // Clear all authentication data
+      authService.clearAuth();
+      
+      // Force logout and redirect
+      forceLogout();
+      
+      // Close user menu
+      setUserMenuAnchor(null);
+      
+      // Force page reload to clear all state
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, still logout
+      forceLogout();
+    }
   };
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {

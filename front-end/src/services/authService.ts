@@ -1,4 +1,5 @@
 import api from './api';
+import { clearAuthData, checkAuthStatus } from '../utils/auth';
 
 export interface LoginRequest {
   email: string;
@@ -44,16 +45,18 @@ export const authService = {
   },
 
   logout: () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    clearAuthData();
     window.location.href = '/';
   },
 
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('authToken');
+    return checkAuthStatus();
   },
 
   getStoredUser: (): User | null => {
+    if (!checkAuthStatus()) {
+      return null;
+    }
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
@@ -66,5 +69,10 @@ export const authService = {
   callAdminStudio: async (): Promise<unknown> => {
     const response = await api.get('/admin/studio');
     return response.data;
+  },
+
+  // Clear all authentication data
+  clearAuth: () => {
+    clearAuthData();
   },
 };

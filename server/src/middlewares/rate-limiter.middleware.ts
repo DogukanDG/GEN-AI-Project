@@ -45,3 +45,18 @@ export const reservationLimiter = rateLimit({
     return req.ip || req.connection.remoteAddress || 'unknown';
   }
 });
+
+// Admin rate limiter - higher limit for admin operations
+export const adminLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 200, // Higher limit for admin operations as they need to manage data
+  message: {
+    success: false,
+    error: 'Too many admin requests, please slow down.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  }
+});

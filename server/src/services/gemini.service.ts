@@ -134,80 +134,150 @@ Return ONLY the normalized text, no explanations.
     }
   }
 
-  async validateRoomRequest(userPrompt: string): Promise<ValidationResult> {
-    console.log("=== Validating room request ===");
-    console.log("User prompt:", userPrompt);
+// Option 1: More Strict Validation (Recommended)
+async validateRoomRequest(userPrompt: string): Promise<ValidationResult> {
+  console.log("=== Validating room request ===");
+  console.log("User prompt:", userPrompt);
 
-    const validationPrompt = `
-    You are a multilingual room booking system validator. Analyze the following user request in ANY language and determine if it's a legitimate room booking request.
+  const validationPrompt = `
+  You are a multilingual room booking system validator. Analyze the following user request in ANY language and determine if it's a legitimate room booking request.
 
-    User request: "${userPrompt}"
+  User request: "${userPrompt}"
 
-    A valid room booking request should contain:
-    - Intent to book, reserve, or find a room/space (in any language)
-    - Some indication of use (meeting, study, class, presentation, etc.)
-    - May include: number of people, equipment needs, time, date, features
+   IMPORTANT VALIDATION RULES:
+  
+  HIGH CONFIDENCE (80-95%) - Strong room booking indicators:
+  - Explicit booking intent: "book room", "reserve", "need room", "oda rezervasyonu"
+  - Capacity + room words: "30 people room", "30 kişilik oda", "sala para 30 personas"
+  - Specific room requests: "meeting room", "classroom", "conference room"
+  - Time-based requests: "room for tomorrow", "yarın için oda"
 
-    Invalid requests include:
-    - Completely unrelated topics (cooking, shopping, nature, etc.)
-    - Nonsensical or gibberish text
-    - Requests that have nothing to do with rooms or bookings
+  MEDIUM CONFIDENCE (60-79%) - Clear but incomplete:
+  - Capacity mentions: "30 people capacity", "30 kişi kapasiteli", "para 30 personas"
+  - Equipment requests: "room with projector", "projektörlü oda"
+  - Basic room mentions: "need space", "alan lazım"
 
-    Return ONLY a JSON object with this structure:
-    {
-      "isValid": true/false,
-      "confidence": 0-100,
-      "reason": "brief explanation if not valid"
-    }
+  LOW CONFIDENCE (40-59%) - Vague but potentially valid:
+  - Generic room mentions without specifics
+  - Unclear intent but room-related words
 
-    Examples:
-    - "I need a room for 10 people" → {"isValid": true, "confidence": 95}
-    - "10 kişilik oda lazım" → {"isValid": true, "confidence": 95}
-    - "necesito sala para 10 personas" → {"isValid": true, "confidence": 95}
-    - "I want to cook dinner" → {"isValid": false, "confidence": 95, "reason": "About cooking, not room booking"}
-    `;
+  INVALID (0-39%) - Not room booking requests:
+  - Completely unrelated topics
+  - Personal conversations
+  - Other services
 
-    try {
-      const result = await this.model.generateContent(validationPrompt);
-      const response = await result.response;
-      const text = response.text();
+  KEY INSIGHT: A request mentioning "30 people capacity" is HIGHLY LIKELY to be a room booking request. 
+  Even without explicit booking words, capacity specification is a strong indicator.
+  Someone asking about "30 people capacity" is clearly looking for a space to accommodate 30 people.
 
-      const cleanedText = text
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
-      const validation = JSON.parse(cleanedText);
+  EXAMPLES:
+  ✓ "30 people capacity" → Should be 75-80% confidence (clear capacity need)
+  ✓ "I need a room for 30 people" → Should be 90-95% confidence
+  ✓ "30 kişilik oda" → Should be 85-90% confidence
+  ✓ "sala para 30 personas" → Should be 85-90% confidence
+  ✗ "what's the weather like" → 0% confidence
+  ✗ "hello how are you" → 0% confidence
 
-      console.log("Validation result:", validation);
-      return validation;
-    } catch (error) {
-      console.error("Error validating request:", error);
-      return {
-        isValid: false,
-        confidence: 0,
-        reason: "Unable to validate request",
-      };
+  Return ONLY a JSON object:
+  {
+    "isValid": true/false,
+    "confidence": 0-100,
+    "reason": "brief explanation"
+  }
+
+  Remember: Capacity specification is a STRONG indicator of room booking intent.
+  `;
+
+
+  try {
+    const result = await this.model.generateContent(validationPrompt);
+    const response = await result.response;
+    const text = response.text();
+
+    const cleanedText = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+    const validation = JSON.parse(cleanedText);
+
+    console.log("Validation result:", validation);
+    
+    // REMOVED: The problematic override logic
+    // Only return the AI's decision
+    return validation;
+    
+  } catch (error) {
+    console.error("Error validating request:", error);
+    
+    // More strict fallback - only if very clear keywords
+    const hasStrongRoomKeywords = this.hasStrongRoomKeywords(userPrompt);
+    
+    return {
+      isValid: hasStrongRoomKeywords,
+      confidence: hasStrongRoomKeywords ? 50 : 0,
+      reason: hasStrongRoomKeywords ? "Fallback validation - strong room keywords detected" : "Unable to validate request and no clear room keywords found",
+    };
+  }
+}
+
+// Option 2: Stricter Keyword Detection
+private hasStrongRoomKeywords(text: string): boolean {
+  const strongRoomKeywords = [
+    // Strong room booking indicators only
+    'room booking', 'reserve room', 'book room', 'oda rezervasyon', 'sala reserva',
+    'meeting room', 'toplantı odası', 'sala de reunión', 'salle de réunion',
+    'classroom', 'sınıf', 'clase', 'aula',
+    'conference room', 'konferans odası'
+  ];
+
+  const capacityIndicators = [
+    'people', 'kişi', 'personas', 'personnes', 'personen'
+  ];
+
+  const lowerText = text.toLowerCase();
+  
+  // Must have either strong room keywords OR (room word + capacity)
+  const hasStrongKeyword = strongRoomKeywords.some(keyword => lowerText.includes(keyword));
+  const hasRoomAndCapacity = 
+    ['room', 'oda', 'sala', 'salle', 'raum'].some(room => lowerText.includes(room)) &&
+    capacityIndicators.some(cap => lowerText.includes(cap));
+
+  return hasStrongKeyword || hasRoomAndCapacity;
+}
+
+  async parseRoomRequest(userPrompt: string): Promise<RoomRequirements> {
+   console.log("=== Gemini parseRoomRequest started ===");
+  console.log("User prompt:", userPrompt);
+
+  // Validate the request first
+  const validation = await this.validateRoomRequest(userPrompt);
+
+  // More strict validation check
+  if (!validation.isValid || validation.confidence < 75) { // Increased threshold
+    console.log("Validation failed:", validation);
+    throw new Error(
+      `Invalid room booking request: ${
+        validation.reason ||
+        "Request does not appear to be related to room booking"
+      }. Confidence: ${validation.confidence}%`
+    );
+  }
+
+  // Add additional check: if confidence is low but valid, double-check
+  if (validation.isValid && validation.confidence < 80) {
+    console.log("Low confidence validation, double-checking...");
+    
+    // Simple keyword verification
+    if (!this.hasStrongRoomKeywords(userPrompt)) {
+      throw new Error(
+        `Low confidence room booking request (${validation.confidence}%) and no strong room keywords detected`
+      );
     }
   }
 
-  async parseRoomRequest(userPrompt: string): Promise<RoomRequirements> {
-    console.log("=== Gemini parseRoomRequest started ===");
-    console.log("User prompt:", userPrompt);
+  // Continue with the rest of your parsing logic...
+  const normalizedPrompt = await this.normalizeDateExpression(userPrompt);
 
-    // Önce prompt'u validate et
-    const validation = await this.validateRoomRequest(userPrompt);
-
-    if (!validation.isValid || validation.confidence < 70) {
-      throw new Error(
-        `Invalid room booking request: ${
-          validation.reason ||
-          "Request does not appear to be related to room booking"
-        }`
-      );
-    }
-
-    // SEÇENEK 1: Tarih normalizasyonu yap (önerilen)
-    const normalizedPrompt = await this.normalizeDateExpression(userPrompt);
 
     // SEÇENEK 2: Veya JavaScript parsing kullan
     // const normalizedPrompt = await this.parseWithDateLibrary(userPrompt);
@@ -298,17 +368,15 @@ Return ONLY the normalized text, no explanations.
     );
   }
 
-  // Diğer metodlar aynı kalıyor...
-  async rankRooms(
+ async rankRooms(
     requirements: RoomRequirements,
     availableRooms: any[]
   ): Promise<any[]> {
-    // Mevcut kod aynı
     const roomsData = JSON.stringify(availableRooms, null, 2);
     const requirementsData = JSON.stringify(requirements, null, 2);
 
     const prompt = `
-    You are an AI assistant for a room booking system. Rank the following rooms based on how well they match the user requirements.
+    You are an AI assistant for a room booking system. Rank the following rooms based on how well they match the user requirements with SPECIAL FOCUS ON CAPACITY MATCHING.
 
     User Requirements:
     ${requirementsData}
@@ -316,21 +384,52 @@ Return ONLY the normalized text, no explanations.
     Available Rooms:
     ${roomsData}
 
+    CAPACITY SCORING RULES (Most Important - 60% of total score):
+    ${requirements.capacity ? `
+    - Requested capacity: ${requirements.capacity} people
+    - Perfect match (exact capacity): 60 points
+    - Close match (±2 people): 50-55 points  
+    - Acceptable range (±5 people): 40-45 points
+    - Over capacity but usable (up to +50%): 30-35 points
+    - Under capacity (cannot fit everyone): 0 points
+    - Heavily over capacity (more than 2x needed): 10-20 points
+    
+    Example scoring for ${requirements.capacity} people:
+    - Room for ${requirements.capacity} people: 60 points
+    - Room for ${requirements.capacity - 1}-${requirements.capacity + 1} people: 55 points
+    - Room for ${requirements.capacity - 2}-${requirements.capacity + 2} people: 50 points
+    - Room for ${requirements.capacity - 5}-${requirements.capacity + 5} people: 45 points
+    - Room for ${Math.ceil(requirements.capacity * 1.5)} people: 30 points
+    - Room for ${requirements.capacity * 2} people: 15 points
+    ` : 'No capacity specified - give equal weight to other features'}
+
+    OTHER FEATURES SCORING (40% of total score):
+    ONLY score for explicitly requested features:
+    - Required features match: +10 points each (only if user requested)
+    - Room type match: +10 points (only if user specified)
+    - Time/date availability: +10 points (only if user specified)
+    - DO NOT give bonus points for unrequested features
+    - If no other features requested, give full 40 points to capacity-only requests
+
     Please rank the rooms from best to worst match and return a JSON array with the following structure:
     [
       {
         "roomNumber": "room_number",
         "matchScore": 0-100,
+        "capacityScore": 0-60,
+        "featuresScore": 0-40,
         "matchReasons": ["reason1", "reason2"],
         "room": { original room object }
       }
     ]
 
-    Ranking criteria:
-    1. Capacity: Must accommodate the required number of people
-    2. Required features: Must have all explicitly requested features
-    3. Room type: Should match if specified
-    4. Additional features: Bonus points for extra useful features
+    IMPORTANT: 
+    - If user ONLY specified capacity, focus 100% on capacity matching
+    - Only give points for features the user explicitly requested
+    - DO NOT give bonus points for extra features user didn't ask for
+    - Calculate capacity score first (0-60 points if other features requested, 0-100 if only capacity)
+    - Then calculate features score ONLY for requested features
+    - Sort by total score (highest first)
 
     Return only the JSON array without any additional text or formatting.
     `;
@@ -353,6 +452,187 @@ Return ONLY the normalized text, no explanations.
     }
   }
 
+  // Alternatif olarak, JavaScript ile de kapacity scoring yapabiliriz
+  private calculateCapacityScore(
+    requestedCapacity: number, 
+    roomCapacity: number, 
+    isOnlyCapacity: boolean = false
+  ): number {
+    console.log(`calculateCapacityScore called:`, {
+      requestedCapacity,
+      roomCapacity, 
+      isOnlyCapacity,
+      hasRequestedCapacity: !!requestedCapacity,
+      hasRoomCapacity: !!roomCapacity
+    });
+
+    if (!requestedCapacity || !roomCapacity) {
+      const defaultScore = isOnlyCapacity ? 50 : 30;
+      console.log(`Missing capacity data, returning default: ${defaultScore}`);
+      return defaultScore;
+    }
+
+    const maxScore = isOnlyCapacity ? 100 : 60; // Eğer sadece kapasite isteniyorsa tam puan
+    const difference = Math.abs(roomCapacity - requestedCapacity);
+
+    console.log(`Capacity calculation:`, {
+      maxScore,
+      difference,
+      ratio: roomCapacity / requestedCapacity
+    });
+
+    // Oda çok küçükse (herkesi alamazsa)
+    if (roomCapacity < requestedCapacity) {
+      console.log(`Room too small: ${roomCapacity} < ${requestedCapacity}, returning 0`);
+      return 0;
+    }
+
+    // Mükemmel eşleşme
+    if (difference === 0) {
+      console.log(`Perfect match, returning ${maxScore}`);
+      return maxScore;
+    }
+
+    // Yakın eşleşme (±1-2 kişi)
+    if (difference <= 2) {
+      const score = Math.round(maxScore * 0.9) - (difference * 2);
+      console.log(`Close match (±2), returning ${score}`);
+      return score;
+    }
+
+    // Kabul edilebilir aralık (±3-5 kişi)
+    if (difference <= 5) {
+      const score = Math.round(maxScore * 0.75) - (difference * 2);
+      console.log(`Acceptable range (±5), returning ${score}`);
+      return score;
+    }
+
+    // Kapasitesi fazla ama kullanılabilir
+    const ratio = roomCapacity / requestedCapacity;
+    if (ratio <= 1.5) {
+      const score = Math.max(Math.round(maxScore * 0.5), Math.round(maxScore * 0.75) - difference);
+      console.log(`Over capacity but usable (ratio: ${ratio}), returning ${score}`);
+      return score;
+    }
+
+    // Çok büyük oda (2 katından fazla)
+    if (ratio > 2) {
+      const score = Math.round(maxScore * 0.1);
+      console.log(`Way over capacity (ratio: ${ratio}), returning ${score}`);
+      return score;
+    }
+
+    const score = Math.max(Math.round(maxScore * 0.25), Math.round(maxScore * 0.6) - difference);
+    console.log(`Default case, returning ${score}`);
+    return score;
+  }
+
+  // Ana ranking fonksiyonu - önce AI dener, başarısız olursa JavaScript fallback
+  async rankRoomsWithFallback(
+    requirements: RoomRequirements,
+    availableRooms: any[]
+  ): Promise<any[]> {
+    try {
+      // Önce AI ile ranking yap
+      const aiRanked = await this.rankRooms(requirements, availableRooms);
+      return aiRanked;
+    } catch (error) {
+      console.warn("AI ranking failed, using fallback JavaScript scoring:");
+      
+      // Fallback: JavaScript ile scoring
+      const scored = availableRooms.map(room => {
+        let totalScore = 0;
+        let reasons: string[] = [];
+        
+        // Sadece talep edilen özellikler sayılır - boolean tipine çevir
+        const onlyCapacityRequested: boolean = Boolean(
+          requirements.capacity && 
+          !requirements.hasProjector && 
+          !requirements.hasAirConditioner && 
+          !requirements.hasMicrophone && 
+          !requirements.hasCamera && 
+          !requirements.roomType && 
+          !requirements.date
+        );
+
+        // Kapasite scoring
+        if (requirements.capacity) {
+          const capacityScore = this.calculateCapacityScore(
+            requirements.capacity, 
+            room.capacity, 
+            onlyCapacityRequested
+          );
+          
+          // Debug logs
+          console.log(`Room ${room.roomNumber || room.id}:`, {
+            requestedCapacity: requirements.capacity,
+            roomCapacity: room.capacity,
+            onlyCapacityRequested,
+            capacityScore,
+            maxScorePossible: onlyCapacityRequested ? 100 : 60
+          });
+          
+          totalScore += capacityScore;
+          
+          if (capacityScore >= (onlyCapacityRequested ? 90 : 55)) {
+            reasons.push(`Perfect capacity match (${room.capacity} people)`);
+          } else if (capacityScore >= (onlyCapacityRequested ? 75 : 40)) {
+            reasons.push(`Good capacity match (${room.capacity} people)`);
+          } else if (capacityScore === 0) {
+            reasons.push(`Insufficient capacity (${room.capacity} < ${requirements.capacity})`);
+          } else {
+            reasons.push(`Acceptable capacity (${room.capacity} people)`);
+          }
+        } else {
+          // Kapasite belirtilmemişse sabit skor ver
+          const defaultScore = 40;
+          totalScore += defaultScore;
+          console.log(`Room ${room.roomNumber || room.id}: No capacity requirement, default score: ${defaultScore}`);
+        }
+
+        // Sadece talep edilen özellikler için puan ver
+        let featuresScore = 0;
+        if (requirements.hasProjector === true && room.hasProjector) {
+          featuresScore += 10;
+          reasons.push("Has required projector");
+        }
+        if (requirements.hasAirConditioner === true && room.hasAirConditioner) {
+          featuresScore += 10;
+          reasons.push("Has required air conditioner");
+        }
+        if (requirements.hasMicrophone === true && room.hasMicrophone) {
+          featuresScore += 10;
+          reasons.push("Has required microphone");
+        }
+        if (requirements.hasCamera === true && room.hasCamera) {
+          featuresScore += 10;
+          reasons.push("Has required camera");
+        }
+        if (requirements.roomType && room.roomType === requirements.roomType) {
+          featuresScore += 10;
+          reasons.push(`Matches room type: ${requirements.roomType}`);
+        }
+
+        // Eğer sadece kapasite isteniyorsa, features score ekleme
+        if (!onlyCapacityRequested) {
+          totalScore += featuresScore;
+        }
+
+        return {
+          roomNumber: room.roomNumber || room.id,
+          matchScore: Math.min(totalScore, 100),
+          capacityScore: requirements.capacity ? 
+            this.calculateCapacityScore(requirements.capacity, room.capacity, onlyCapacityRequested) : 50,
+          featuresScore: onlyCapacityRequested ? 0 : featuresScore,
+          matchReasons: reasons,
+          room: room
+        };
+      });
+
+      // Skora göre sırala
+      return scored.sort((a, b) => b.matchScore - a.matchScore);
+    }
+  }
   async generateBookingConfirmation(reservation: any): Promise<string> {
     const prompt = `
     Generate a friendly booking confirmation message for the following reservation:
