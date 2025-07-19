@@ -37,7 +37,6 @@ router.get('/user/:email', reservationController.getUserReservations);
 router.get(
   '/',
   authorizeUser,
-  requireAdmin,
   getReservationsValidation,
   validateRequest,
   reservationController.getReservations
@@ -47,7 +46,6 @@ router.get(
 router.post(
   '/',
   authorizeUser,
-  requireAdmin,
   reservationLimiter,
   createReservationValidation,
   validateRequest,
@@ -59,7 +57,6 @@ router.put(
   '/:id',
   authorizeUser,
   reservationLimiter,
-  requireAdmin,
   updateReservationValidation,
   validateRequest,
   reservationController.updateReservation
@@ -75,7 +72,6 @@ router.get('/:id', reservationController.getReservationById);
 router.delete(
   '/:id',
   authorizeUser,
-  requireAdmin,
   reservationController.deleteReservation
 );
 
