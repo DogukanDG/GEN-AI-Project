@@ -18,6 +18,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Stack,
   MenuItem,
 } from "@mui/material";
 import {
@@ -37,10 +38,7 @@ import { authService } from "../services/authService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
-type Message =
-  | { role: "user"; content: string }
-  | { role: "assistant"; content: string }
-  | { role: "assistant-rooms"; content: string; data: RoomSearchResponse };
+type Message = { role: "user"; content: string } | { role: "assistant"; content: string } | { role: "assistant-rooms"; content: string; data: RoomSearchResponse };
 
 function HomePage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,6 +46,7 @@ function HomePage() {
   const [loading, setLoading] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<RoomMatch | null>(null);
+  const [showWelcome, setShowWelcome] = useState(true);
   const [bookingDetails, setBookingDetails] = useState({
     userName: "",
     userEmail: "",
@@ -57,6 +56,12 @@ function HomePage() {
     endTime: "",
     purpose: "",
   });
+  const examplePrompts = [
+    "We need a presentation room for 5 people with projector and air conditioning",
+    "Find a quiet meeting room for 4 people this afternoon",
+    "Show me classrooms with natural light for 20 students",
+    "Reserve a conference room with microphone and camera for tomorrow morning",
+  ];
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -77,28 +82,26 @@ function HomePage() {
   const timeSlotOverlaps = (slotStart: string, slotEnd: string, reservedSlot: string): boolean => {
     try {
       // Parse the reserved slot (format: "HH:MM-HH:MM")
-      const [reservedStart, reservedEnd] = reservedSlot.split('-');
-      
+      const [reservedStart, reservedEnd] = reservedSlot.split("-");
+
       // Convert times to minutes for easier comparison
       const timeToMinutes = (time: string): number => {
-        const [hours, minutes] = time.split(':').map(Number);
+        const [hours, minutes] = time.split(":").map(Number);
         return hours * 60 + minutes;
       };
-      
+
       const slotStartMin = timeToMinutes(slotStart);
       const slotEndMin = timeToMinutes(slotEnd);
       const reservedStartMin = timeToMinutes(reservedStart);
       const reservedEndMin = timeToMinutes(reservedEnd);
-      
+
       // Check for overlap: slot starts before reserved ends AND slot ends after reserved starts
       return slotStartMin < reservedEndMin && slotEndMin > reservedStartMin;
     } catch (error) {
-      console.error('Error parsing time slot:', error);
+      console.error("Error parsing time slot:", error);
       return false;
     }
   };
-
-  
 
   useEffect(() => {
     const user = authService.getStoredUser();
@@ -131,7 +134,10 @@ function HomePage() {
         });
         setReservedSlots(reserved);
         console.log("Reserved slots for", room.roomNumber, "on", requirements.date, ":", reserved);
-        console.log("Time slot periods:", timeSlotPeriods.map(slot => `${slot.start}-${slot.end}`));
+        console.log(
+          "Time slot periods:",
+          timeSlotPeriods.map((slot) => `${slot.start}-${slot.end}`)
+        );
       } catch (error: any) {
         console.error("Error loading reserved slots:", error);
         // Don't show error for rate limiting, just keep existing slots
@@ -166,10 +172,10 @@ function HomePage() {
       });
 
       // Format the date for display
-      const formattedDate = new Date(bookingDetails.startDatetime).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long', 
-        day: 'numeric'
+      const formattedDate = new Date(bookingDetails.startDatetime).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
 
       // Create custom success message with room and time details
@@ -184,9 +190,7 @@ function HomePage() {
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message:
-          error.response?.data?.message ||
-          "An error occurred while creating the reservation",
+        message: error.response?.data?.message || "An error occurred while creating the reservation",
         severity: "error",
       });
     } finally {
@@ -194,11 +198,16 @@ function HomePage() {
     }
   };
 
+  const handleExampleClick = (example: string) => {
+    setPrompt(example);
+  };
+
   const handleSubmit = async () => {
     if (!prompt.trim()) return;
 
     const userMessage: Message = { role: "user", content: prompt };
     setPrompt("");
+    setShowWelcome(false);
     setLoading(true);
 
     // Show user message immediately
@@ -230,9 +239,7 @@ function HomePage() {
     } catch (error: any) {
       const errorMessage: Message = {
         role: "assistant",
-        content:
-          error.response?.data?.message ||
-          "An error occurred during the search. Please try again.",
+        content: error.response?.data?.message || "An error occurred during the search. Please try again.",
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -241,42 +248,48 @@ function HomePage() {
   };
 
   // Debounced date change handler to prevent too many API calls
-  const handleDateChange = useCallback(async (date: Date | null) => {
-    setBookingDetails((prev) => ({
-      ...prev,
-      startDatetime: date ? date.toISOString().split("T")[0] : "",
-    }));
+  const handleDateChange = useCallback(
+    async (date: Date | null) => {
+      setBookingDetails((prev) => ({
+        ...prev,
+        startDatetime: date ? date.toISOString().split("T")[0] : "",
+      }));
 
-    // Clear existing timeout
-    if (dateChangeTimeout) {
-      clearTimeout(dateChangeTimeout);
-    }
-
-    // Set new timeout to debounce API calls
-    const timeout = window.setTimeout(async () => {
-      if (selectedRoom && date) {
-        try {
-          const reserved = await roomService.getReservedSlots({
-            roomNumber: selectedRoom.roomNumber,
-            date: date.toISOString().split("T")[0],
-          });
-          setReservedSlots(reserved);
-          console.log("Reserved slots (date change):", reserved);
-          console.log("Time slot periods:", timeSlotPeriods.map(slot => `${slot.start}-${slot.end}`));
-        } catch (error: any) {
-          console.error("Error loading reserved slots:", error);
-          // Don't show error for rate limiting, just keep existing slots
-          if (error.response?.status !== 429) {
-            setReservedSlots([]);
-          }
-        }
-      } else {
-        setReservedSlots([]);
+      // Clear existing timeout
+      if (dateChangeTimeout) {
+        clearTimeout(dateChangeTimeout);
       }
-    }, 500); // Wait 500ms before making API call
 
-    setDateChangeTimeout(timeout);
-  }, [selectedRoom, dateChangeTimeout, timeSlotPeriods]);
+      // Set new timeout to debounce API calls
+      const timeout = window.setTimeout(async () => {
+        if (selectedRoom && date) {
+          try {
+            const reserved = await roomService.getReservedSlots({
+              roomNumber: selectedRoom.roomNumber,
+              date: date.toISOString().split("T")[0],
+            });
+            setReservedSlots(reserved);
+            console.log("Reserved slots (date change):", reserved);
+            console.log(
+              "Time slot periods:",
+              timeSlotPeriods.map((slot) => `${slot.start}-${slot.end}`)
+            );
+          } catch (error: any) {
+            console.error("Error loading reserved slots:", error);
+            // Don't show error for rate limiting, just keep existing slots
+            if (error.response?.status !== 429) {
+              setReservedSlots([]);
+            }
+          }
+        } else {
+          setReservedSlots([]);
+        }
+      }, 500); // Wait 500ms before making API call
+
+      setDateChangeTimeout(timeout);
+    },
+    [selectedRoom, dateChangeTimeout, timeSlotPeriods]
+  );
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -309,15 +322,30 @@ function HomePage() {
       );
     if (room.hasMicrophone)
       features.push(
-        <Chip key="mic" icon={<MicIcon />} label="Microphone" size="small" />
+        <Chip
+          key="mic"
+          icon={<MicIcon />}
+          label="Microphone"
+          size="small"
+        />
       );
     if (room.hasCamera)
       features.push(
-        <Chip key="camera" icon={<CameraIcon />} label="Camera" size="small" />
+        <Chip
+          key="camera"
+          icon={<CameraIcon />}
+          label="Camera"
+          size="small"
+        />
       );
     if (room.hasNoiseCancelling)
       features.push(
-        <Chip key="quiet" icon={<QuietIcon />} label="Quiet" size="small" />
+        <Chip
+          key="quiet"
+          icon={<QuietIcon />}
+          label="Quiet"
+          size="small"
+        />
       );
     if (room.hasNaturalLight)
       features.push(
@@ -339,7 +367,7 @@ function HomePage() {
           display: "flex",
           flexDirection: "column",
           height: "100vh",
-          px: 2,
+          px: 1,
         }}
       >
         <Box
@@ -347,9 +375,151 @@ function HomePage() {
             flexGrow: 1,
             overflowY: "auto",
             py: 2,
-            mb: 2,
+            mb: 1,
           }}
         >
+          {showWelcome && (
+            <Box sx={{ maxWidth: 900, mx: "auto", mb: 4, overflow: "hidden" }}>
+              {/* Main Welcome Card */}
+              <Paper
+                elevation={6}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  textAlign: "center",
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  color: "white",
+                  borderRadius: 3,
+                  position: "relative",
+                  overflow: "hidden",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+
+                    zIndex: 0,
+                  },
+                }}
+              >
+                <Box sx={{ position: "relative", zIndex: 1 }}>
+                  <Typography
+                    variant="h3"
+                    sx={{
+                      fontWeight: 700,
+                      mb: 1,
+                      background: "linear-gradient(45deg, #fff 30%, #f0f8ff 90%)",
+                      backgroundClip: "text",
+                      maxHeight: 300,
+                    }}
+                  >
+                    Welcome to RoomGPT
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      mb: 1,
+                      opacity: 0.9,
+                      fontWeight: 400,
+                    }}
+                  >
+                    AI-Powered Smart Room Booking System
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      opacity: 0.8,
+                      maxWidth: 600,
+                      mx: "auto",
+                    }}
+                  >
+                    Simply describe what you need in natural language, and our AI will find the perfect room for you
+                  </Typography>
+                </Box>
+              </Paper>
+
+              {/* Example Prompts Section */}
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 2,
+                  borderRadius: 3,
+                  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 600,
+                    mb: 1,
+                    textAlign: "center",
+                  }}
+                >
+                  ✨ Try these example prompts to get started:
+                </Typography>
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {examplePrompts.map((example, index) => (
+                    <Paper
+                      key={index}
+                      elevation={2}
+                      sx={{
+                        p: 3,
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                        borderLeft: "4px solid #667eea",
+                        background: "white",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          borderLeftColor: "#764ba2",
+                        },
+                      }}
+                      onClick={() => handleExampleClick(example)}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+
+                            background: "linear-gradient(45deg, #667eea, #764ba2)",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            color: "#2c3e50",
+                            fontWeight: 500,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          "{example}"
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Box>
+
+                {/* Features Section */}
+                <Box sx={{ mt: 4, pt: 3 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      textAlign: "center",
+                      color: "#7f8c8d",
+                      mb: 2,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    🎯 Our AI understands natural language and finds rooms based on your specifications.
+                  </Typography>
+                </Box>
+              </Paper>
+            </Box>
+          )}
           {messages.map((msg, index) => {
             if (msg.role === "assistant-rooms") {
               return (
@@ -380,9 +550,7 @@ function HomePage() {
                   </Typography>
 
                   {msg.data.rooms.length > 0 ? (
-                    <Box
-                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-                    >
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       {msg.data.rooms.map((room, roomIndex) => (
                         <Card
                           key={roomIndex}
@@ -458,17 +626,13 @@ function HomePage() {
                                     verticalAlign: "middle",
                                   }}
                                 />
-                                Type:{" "}
-                                {room.room.roomType === "classroom"
-                                  ? "Classroom"
-                                  : "Meeting Room"}
+                                Type: {room.room.roomType === "classroom" ? "Classroom" : "Meeting Room"}
                               </Typography>
                               <Typography
                                 variant="body2"
                                 color="text.secondary"
                               >
-                                Floor: {room.room.floor}, Area:{" "}
-                                {room.room.areaSqm}m²
+                                Floor: {room.room.floor}, Area: {room.room.areaSqm}m²
                               </Typography>
                             </Box>
 
@@ -518,9 +682,7 @@ function HomePage() {
                             <Button
                               fullWidth
                               variant="outlined"
-                              onClick={() =>
-                                handleRoomBooking(room, msg.data.requirements)
-                              }
+                              onClick={() => handleRoomBooking(room, msg.data.requirements)}
                               disabled={loading}
                             >
                               Book Now
@@ -530,10 +692,7 @@ function HomePage() {
                       ))}
                     </Box>
                   ) : (
-                    <Alert severity="info">
-                      No rooms found matching your criteria. Please try
-                      searching with different criteria.
-                    </Alert>
+                    <Alert severity="info">No rooms found matching your criteria. Please try searching with different criteria.</Alert>
                   )}
                 </Paper>
               );
@@ -546,8 +705,7 @@ function HomePage() {
                     mb: 1,
                     maxWidth: "75%",
                     alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                    backgroundColor:
-                      msg.role === "user" ? "#1976d2" : "#ffffff",
+                    backgroundColor: msg.role === "user" ? "#1976d2" : "#ffffff",
                     color: msg.role === "user" ? "#fff" : "#000",
                     overflow: "hidden",
                     wordBreak: "break-word",
@@ -639,9 +797,7 @@ function HomePage() {
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle>
-            Make a Reservation - {selectedRoom?.roomNumber}
-          </DialogTitle>
+          <DialogTitle>Make a Reservation - {selectedRoom?.roomNumber}</DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 2 }}>
               <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
@@ -650,11 +806,7 @@ function HomePage() {
                     <DatePicker
                       label={bookingDetails.startDatetime ? "" : "Reservation Date"}
                       views={["day", "month"]}
-                      value={
-                        bookingDetails.startDatetime
-                          ? new Date(bookingDetails.startDatetime)
-                          : null
-                      }
+                      value={bookingDetails.startDatetime ? new Date(bookingDetails.startDatetime) : null}
                       onChange={handleDateChange}
                       disablePast
                       minDate={new Date(new Date().getFullYear(), 0, 1)}
@@ -666,16 +818,15 @@ function HomePage() {
                   </LocalizationProvider>
                 </Box>
                 <Box sx={{ minWidth: 180, flex: 1, height: "100%" }}>
-                  <FormControl fullWidth >
-                    <InputLabel id="time-slot-label" sx={{ fontSize: 16 }}>
+                  <FormControl fullWidth>
+                    <InputLabel
+                      id="time-slot-label"
+                      sx={{ fontSize: 16 }}
+                    >
                       {bookingDetails.startTime ? "" : "Time Slot"}
                     </InputLabel>
                     <Select
-                      value={
-                        bookingDetails.startTime
-                          ? `${bookingDetails.startTime}-${bookingDetails.endTime}`
-                          : ""
-                      }
+                      value={bookingDetails.startTime ? `${bookingDetails.startTime}-${bookingDetails.endTime}` : ""}
                       label="Time Slot"
                       onChange={(e) => {
                         const [start, end] = e.target.value.split("-");
@@ -686,7 +837,6 @@ function HomePage() {
                         }));
                       }}
                       sx={() => ({
-                        
                         minHeight: 56,
                         display: "flex",
                         alignItems: "center",
@@ -697,13 +847,13 @@ function HomePage() {
                         // Check if this exact time slot or overlapping time slot is reserved
                         const isDisabled = reservedSlots.some((reservedSlot) => {
                           const slotRange = `${slot.start}-${slot.end}`;
-                          
+
                           // Exact match check
                           if (reservedSlot === slotRange) {
                             console.log(`Exact match found: ${slotRange} matches ${reservedSlot}`);
                             return true;
                           }
-                          
+
                           // Overlap check - but only if there's actual time conflict
                           const hasOverlap = timeSlotOverlaps(slot.start, slot.end, reservedSlot);
                           if (hasOverlap) {
@@ -711,7 +861,7 @@ function HomePage() {
                           }
                           return hasOverlap;
                         });
-                        
+
                         return (
                           <MenuItem
                             key={slot.label}
@@ -719,18 +869,18 @@ function HomePage() {
                             disabled={isDisabled}
                             sx={{
                               opacity: isDisabled ? 0.6 : 1,
-                              backgroundColor: isDisabled ? '#f5f5f5' : 'inherit',
-                              color: isDisabled ? '#999' : 'inherit',
-                              '&:hover': {
-                                backgroundColor: isDisabled ? '#f5f5f5' : 'rgba(0, 0, 0, 0.04)',
+                              backgroundColor: isDisabled ? "#f5f5f5" : "inherit",
+                              color: isDisabled ? "#999" : "inherit",
+                              "&:hover": {
+                                backgroundColor: isDisabled ? "#f5f5f5" : "rgba(0, 0, 0, 0.04)",
                               },
-                              '&.Mui-disabled': {
-                                backgroundColor: '#e8e8e8',
-                                color: '#999',
-                              }
+                              "&.Mui-disabled": {
+                                backgroundColor: "#e8e8e8",
+                                color: "#999",
+                              },
                             }}
                           >
-                            {slot.label} {isDisabled && '(Reserved)'}
+                            {slot.label} {isDisabled && "(Reserved)"}
                           </MenuItem>
                         );
                       })}
@@ -781,12 +931,7 @@ function HomePage() {
             <Button
               onClick={handleBookingSubmit}
               variant="outlined"
-              disabled={
-                loading ||
-                !bookingDetails.startDatetime ||
-                !bookingDetails.startTime ||
-                !bookingDetails.endTime
-              }
+              disabled={loading || !bookingDetails.startDatetime || !bookingDetails.startTime || !bookingDetails.endTime}
               sx={{ minWidth: "120px", minHeight: "40px" }}
             >
               {loading ? <CircularProgress size={20} /> : "Book Room"}
