@@ -12,6 +12,30 @@ const roomFeatureRepository = new RoomFeatureRepository();
 
 export class ReservationService {
   async createReservation(data: CreateReservationDto) {
+    // Kullanıcının aynı gün için mevcut rezervasyonu var mı kontrol et
+    const startDate = new Date(data.startDatetime);
+    const userReservations = await reservationRepository.findMany({
+      userEmail: data.userEmail,
+      startDate: new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        startDate.getDate()
+      ),
+      endDate: new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        startDate.getDate(),
+        23,
+        59,
+        59
+      ),
+      status: "confirmed",
+    });
+
+    if (userReservations.length > 0) {
+      throw new HttpError(409, "You can only make one reservation per day.");
+    }
+
     // Check if room exists
     const room = await roomFeatureRepository.findAll();
     const roomExists = room.find((r) => r.roomNumber === data.roomNumber);
@@ -186,7 +210,7 @@ export class ReservationService {
 
         throw new HttpError(
           400,
-          "Unable to process your room request. Please try rephrasing your request with clear room booking details."
+          "Unable to process your room request. Please ensure your request includes details such as desired date, time, room type, capacity, and any required features (e.g., projector, air conditioner)."
         );
       }
 

@@ -245,9 +245,22 @@ function MyBookingsPage() {
               Are you sure you want to cancel this reservation?
             </Typography>
             {selectedReservation && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                <Typography variant="subtitle2">{selectedReservation.room?.name || selectedReservation.roomNumber}</Typography>
-                <Typography variant="body2" color="text.secondary">
+              <Box sx={{ 
+                mt: 2, 
+                p: 2, 
+                bgcolor: (theme) => theme.palette.mode === 'light' ? 'grey.800' : 'grey.100', 
+                borderRadius: 1 
+              }}>
+                <Typography 
+                  variant="subtitle2"
+                  sx={{ color: (theme) => theme.palette.mode === 'light' ? 'white' : 'text.primary' }}
+                >
+                  {selectedReservation.room?.name || selectedReservation.roomNumber}
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  sx={{ color: (theme) => theme.palette.mode === 'light' ? 'grey.300' : 'text.secondary' }}
+                >
                   {formatDateTime(selectedReservation.startDatetime)} - {formatDateTime(selectedReservation.endDatetime)}
                 </Typography>
               </Box>

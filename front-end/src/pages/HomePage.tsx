@@ -98,21 +98,9 @@ function HomePage() {
     }
   };
 
-  const pickerFieldSx = {
-    // match the dark background of the select box
-    "& .MuiInputBase-root": {
-      minHeight: 56, // same default height as an MUI “outlined” TextField
-    },
-    // text, icon & label colours
-    "& .MuiInputBase-input, & .MuiSvgIcon-root": { color: "#fff" },
-    "& .MuiInputLabel-root": { color: "#ccc" },
-    // optional – keep the dark border theme
-    "& fieldset": { borderColor: "#333" },
-    "&:hover fieldset": { borderColor: "#555" },
-  };
+  
 
   useEffect(() => {
-    // Get user info for pre-filling
     const user = authService.getStoredUser();
     if (user) {
       setBookingDetails((prev) => ({
@@ -168,7 +156,7 @@ function HomePage() {
       const startDateTime = `${bookingDetails.startDatetime}T${bookingDetails.startTime}:00`;
       const endDateTime = `${bookingDetails.startDatetime}T${bookingDetails.endTime}:00`;
 
-      const result = await roomService.createReservation({
+      await roomService.createReservation({
         roomNumber: selectedRoom.roomNumber,
         userName: bookingDetails.userName,
         userEmail: bookingDetails.userEmail,
@@ -177,9 +165,17 @@ function HomePage() {
         purpose: bookingDetails.purpose,
       });
 
+      // Format the date for display
+      const formattedDate = new Date(bookingDetails.startDatetime).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long', 
+        day: 'numeric'
+      });
+
+      // Create custom success message with room and time details
       setSnackbar({
         open: true,
-        message: result.confirmationMessage,
+        message: `Room ${selectedRoom.roomNumber} successfully reserved for ${formattedDate} from ${bookingDetails.startTime} to ${bookingDetails.endTime}.`,
         severity: "success",
       });
 
@@ -209,19 +205,19 @@ function HomePage() {
     setMessages((prev) => [...prev, userMessage]);
 
     try {
-      const result = await roomService.searchRoomsWithAI({ prompt });
+      const searchResult = await roomService.searchRoomsWithAI({ prompt });
 
       const assistantMessage: Message = {
         role: "assistant-rooms",
-        content: result.message,
-        data: result,
+        content: searchResult.message,
+        data: searchResult,
       };
-      if (result.requirements?.date) {
+      if (searchResult.requirements?.date) {
         setBookingDetails((prev) => ({
           ...prev,
-          startDatetime: result.requirements.date || "",
-          startTime: result.requirements.startTime || "",
-          endTime: result.requirements.endTime || "",
+          startDatetime: searchResult.requirements.date || "",
+          startTime: searchResult.requirements.startTime || "",
+          endTime: searchResult.requirements.endTime || "",
         }));
       } else {
         setBookingDetails((prev) => ({
@@ -652,7 +648,8 @@ function HomePage() {
                 <Box sx={{ minWidth: 180, flex: 1 }}>
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DatePicker
-                      label="Reservation Date"
+                      label={bookingDetails.startDatetime ? "" : "Reservation Date"}
+                      views={["day", "month"]}
                       value={
                         bookingDetails.startDatetime
                           ? new Date(bookingDetails.startDatetime)
@@ -660,6 +657,8 @@ function HomePage() {
                       }
                       onChange={handleDateChange}
                       disablePast
+                      minDate={new Date(new Date().getFullYear(), 0, 1)}
+                      maxDate={new Date(new Date().getFullYear(), 11, 31)}
                       slotProps={{
                         textField: { fullWidth: true, required: true },
                       }}
@@ -667,10 +666,11 @@ function HomePage() {
                   </LocalizationProvider>
                 </Box>
                 <Box sx={{ minWidth: 180, flex: 1, height: "100%" }}>
-                  <FormControl fullWidth required>
-                    <InputLabel id="time-slot-label">Time Slot</InputLabel>
+                  <FormControl fullWidth >
+                    <InputLabel id="time-slot-label" sx={{ fontSize: 16 }}>
+                      {bookingDetails.startTime ? "" : "Time Slot"}
+                    </InputLabel>
                     <Select
-                      labelId="time-slot-label"
                       value={
                         bookingDetails.startTime
                           ? `${bookingDetails.startTime}-${bookingDetails.endTime}`
@@ -685,12 +685,12 @@ function HomePage() {
                           endTime: end,
                         }));
                       }}
-                      sx={{
-                        ...pickerFieldSx,
-                        minHeight: 56, // veya height: 56
+                      sx={() => ({
+                        
+                        minHeight: 56,
                         display: "flex",
                         alignItems: "center",
-                      }}
+                      })}
                     >
                       <MenuItem value="">Select time slot</MenuItem>
                       {timeSlotPeriods.map((slot) => {
