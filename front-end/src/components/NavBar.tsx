@@ -65,7 +65,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
 
   const menuItems = [
     { text: 'Home', path: '/homepage', icon: <HomeIcon /> },
-    { text: 'My Bookings', path: '/mybookings', icon: <BookingsIcon /> },
+    { text: 'My Reservations', path: '/mybookings', icon: <BookingsIcon /> },
   ];
 
   const drawer = (
