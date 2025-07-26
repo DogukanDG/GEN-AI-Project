@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 export interface RoomSearchRequest {
   prompt: string;
@@ -12,7 +12,7 @@ export interface RoomRequirements {
   hasCamera?: boolean;
   hasNoiseCancelling?: boolean;
   hasNaturalLight?: boolean;
-  roomType?: 'classroom' | 'study_room';
+  roomType?: "classroom" | "study_room";
   date?: string;
   startTime?: string;
   endTime?: string;
@@ -95,15 +95,6 @@ export interface CheckAvailabilityRequest {
   endDatetime: string;
 }
 
-// Reservation update
-export const updateReservation = async (
-  id: number,
-  data: Partial<Reservation>
-) => {
-  const response = await api.put(`/reservations/${id}`, data);
-  return response.data.data;
-};
-
 // Reservation delete
 export const deleteReservation = async (id: number) => {
   await api.delete(`/reservations/${id}`);
@@ -111,19 +102,42 @@ export const deleteReservation = async (id: number) => {
 
 export const roomService = {
   // AI-powered room search
+  updateReservation: async (
+    id: number,
+    data: Partial<Reservation>
+  ): Promise<Reservation> => {
+    const response = await api.put(`/reservations/${id}`, data);
+    return response.data.data;
+  },
+  deleteReservation: async (id: number): Promise<void> => {
+    await api.delete(`/reservations/${id}`);
+  },
   searchRoomsWithAI: async (
     request: RoomSearchRequest
   ): Promise<RoomSearchResponse> => {
-    const response = await api.post('/reservations/search-ai', request);
+    const response = await api.post("/reservations/search-ai", request);
     return response.data.data;
   },
-
+  getReservedSlots: async ({
+    roomNumber,
+    date,
+  }: {
+    roomNumber: string;
+    date: string;
+  }): Promise<string[]> => {
+    const response = await api.get(
+      `/reservations/reserved-slots?roomNumber=${encodeURIComponent(
+        roomNumber
+      )}&date=${encodeURIComponent(date)}`
+    );
+    return response.data.data;
+  },
   // Check room availability
   checkAvailability: async (
     request: CheckAvailabilityRequest
   ): Promise<boolean> => {
     const response = await api.post(
-      '/reservations/check-availability',
+      "/reservations/check-availability",
       request
     );
     return response.data.data.isAvailable;
@@ -133,7 +147,7 @@ export const roomService = {
   createReservation: async (
     request: CreateReservationRequest
   ): Promise<{ reservation: Reservation; confirmationMessage: string }> => {
-    const response = await api.post('/reservations', request);
+    const response = await api.post("/reservations", request);
     return response.data.data;
   },
 
@@ -172,10 +186,69 @@ export const roomService = {
   // Get upcoming reservations
   getUpcomingReservations: async (limit?: number): Promise<Reservation[]> => {
     const response = await api.get(
-      `/reservations/upcoming${limit ? `?limit=${limit}` : ''}`
+      `/reservations/upcoming${limit ? `?limit=${limit}` : ""}`
     );
     return response.data.data;
   },
-  updateReservation,
-  deleteReservation,
+  getAllRooms: async (): Promise<any[]> => {
+    const response = await api.get('/rooms');
+    return response.data.data;
+  },
+
+  // Add new room
+  addRoom: async (roomData: any): Promise<any> => {
+    const response = await api.post('/rooms', roomData);
+    return response.data.data;
+  },
+
+  // Update room
+  updateRoom: async (roomId: number, roomData: any): Promise<any> => {
+    const response = await api.put(`/rooms/${roomId}`, roomData);
+    return response.data.data;
+  },
+
+  // Delete room
+  deleteRoom: async (roomId: number): Promise<void> => {
+    await api.delete(`/rooms/${roomId}`);
+  },
+
+  // Get all users for admin
+  getAllUsers: async (): Promise<any[]> => {
+    const response = await api.get('/users');
+    return response.data.data;
+  },
+
+  // Add new user
+  addUser: async (userData: any): Promise<any> => {
+    const response = await api.post('/users', userData);
+    return response.data.data;
+  },
+
+  // Update user
+  updateUser: async (userId: number, userData: any): Promise<any> => {
+    const response = await api.put(`/users/${userId}`, userData);
+    return response.data.data;
+  },
+
+  // Delete user
+  deleteUser: async (userId: number): Promise<void> => {
+    await api.delete(`/users/${userId}`);
+  },
+
+  // Get dashboard stats
+  getDashboardStats: async (): Promise<any> => {
+    const response = await api.get('/admin/stats');
+    return response.data.data;
+  },
+
+  // Force delete reservation (admin only)
+  forceDeleteReservation: async (reservationId: number): Promise<void> => {
+    await api.delete(`/admin/reservations/${reservationId}`);
+  },
+
+  // Update reservation status (admin only)
+  updateReservationStatus: async (reservationId: number, status: string): Promise<Reservation> => {
+    const response = await api.patch(`/admin/reservations/${reservationId}/status`, { status });
+    return response.data.data;
+  },
 };

@@ -8,19 +8,24 @@ import {
 import { validateRequest } from '../../middlewares/request-validator.middleware';
 import { requireAdmin } from '../../middlewares/role-authorization.middleware';
 import { authorizeUser } from '../../middlewares/authorize-user.middleware';
+import { apiLimiter, searchLimiter, reservationLimiter } from '../../middlewares/rate-limiter.middleware';
 
 const router = Router();
 
+router.use(apiLimiter);
 // Test endpoint
 router.get('/test', (req, res) => {
   res.json({ message: 'Reservation routes working!' });
 });
 
-// AI-powered room search
-router.post('/search-ai', reservationController.searchRoomsWithAI);
+// AI-powered room search - with stricter rate limiting
+router.post('/search-ai', searchLimiter, reservationController.searchRoomsWithAI);
 
-// Check room availability
-router.post('/check-availability', reservationController.checkRoomAvailability);
+// Check room availability - with reservation rate limiting
+router.post('/check-availability', reservationLimiter, reservationController.checkRoomAvailability);
+
+// Get reserved time slots for a room on a specific date - with reservation rate limiting
+router.get('/reserved-slots', reservationLimiter, reservationController.getReservedSlots);
 
 // Get upcoming reservations
 router.get('/upcoming', reservationController.getUpcomingReservations);
@@ -32,7 +37,6 @@ router.get('/user/:email', reservationController.getUserReservations);
 router.get(
   '/',
   authorizeUser,
-  requireAdmin,
   getReservationsValidation,
   validateRequest,
   reservationController.getReservations
@@ -42,7 +46,7 @@ router.get(
 router.post(
   '/',
   authorizeUser,
-  requireAdmin,
+  reservationLimiter,
   createReservationValidation,
   validateRequest,
   reservationController.createReservation
@@ -52,14 +56,14 @@ router.post(
 router.put(
   '/:id',
   authorizeUser,
-  requireAdmin,
+  reservationLimiter,
   updateReservationValidation,
   validateRequest,
   reservationController.updateReservation
 );
 
 // Cancel a reservation
-router.patch('/:id/cancel', reservationController.cancelReservation);
+router.patch('/:id/cancel', reservationLimiter,reservationController.cancelReservation);
 
 // Get a specific reservation by ID (must be last due to /:id pattern)
 router.get('/:id', reservationController.getReservationById);
@@ -68,7 +72,6 @@ router.get('/:id', reservationController.getReservationById);
 router.delete(
   '/:id',
   authorizeUser,
-  requireAdmin,
   reservationController.deleteReservation
 );
 

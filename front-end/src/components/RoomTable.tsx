@@ -10,7 +10,7 @@ import {
   Stack,
 } from '@mui/material';
 import Checkbox from '@mui/material/Checkbox';
-import api from '../services/api';
+import { adminService } from '../services/adminService';
 
 interface Room {
   id: number;
@@ -72,8 +72,8 @@ export default function RoomTable() {
 
   const fetchRooms = async () => {
     try {
-      const res = await api.get('/room-features/rooms');
-      setRooms(res.data.data.rooms);
+      const response = await adminService.getRoomFeatures();
+      setRooms(response.data);
     } catch (error: unknown) {
       if (error instanceof Error) {
         const axiosError = error as {
@@ -102,10 +102,10 @@ export default function RoomTable() {
   const handleAdd = () => {
     setEditRoom({
       roomNumber: '',
-      floor: 0,
+      floor: 1,
       roomType: '',
-      capacity: 0,
-      areaSqm: 0,
+      capacity: 1,
+      areaSqm: 1.0,
       windowCount: 0,
       hasNaturalLight: false,
       hasProjector: false,
@@ -120,27 +120,49 @@ export default function RoomTable() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+    
+    let processedValue: any = value;
+    
+    // Convert numeric fields to proper types
+    if (type === 'number') {
+      if (name === 'areaSqm') {
+        processedValue = parseFloat(value) || 0;
+      } else if (['floor', 'capacity', 'windowCount'].includes(name)) {
+        processedValue = parseInt(value) || 0;
+      }
+    } else if (type === 'checkbox') {
+      processedValue = checked;
+    }
+    
     setEditRoom({
       ...editRoom,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: processedValue,
     });
   };
 
   const handleSave = async () => {
-    if (isNew) {
-      await api.post('/room-features/rooms', editRoom);
-    } else if (editRoom.id) {
-      await api.put(`/room-features/rooms/${editRoom.id}`, editRoom);
+    try {
+      if (isNew) {
+        await adminService.createRoomFeature(editRoom);
+      } else if (editRoom.id) {
+        await adminService.updateRoomFeature(editRoom.id, editRoom);
+      }
+      setDrawerOpen(false);
+      fetchRooms();
+    } catch (error) {
+      console.error('Save room error:', error);
     }
-    setDrawerOpen(false);
-    fetchRooms();
   };
 
   const handleDelete = async () => {
-    if (editRoom.id) {
-      await api.delete(`/room-features/rooms/${editRoom.id}`);
-      setDrawerOpen(false);
-      fetchRooms();
+    try {
+      if (editRoom.id) {
+        await adminService.deleteRoomFeature(editRoom.id);
+        setDrawerOpen(false);
+        fetchRooms();
+      }
+    } catch (error) {
+      console.error('Delete room error:', error);
     }
   };
 
