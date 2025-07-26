@@ -1,0 +1,19 @@
+model Room {
+  room_id              Int           @id @default(autoincrement())
+  room_number          String        @unique
+  floor                Int
+  room_type            String
+  capacity             Int
+  area_sqm             Float
+  chair_count          Int
+  window_count         Int
+  has_natural_light    Boolean
+  has_projector        Boolean
+  has_microphone       Boolean
+  has_camera           Boolean
+  has_air_conditioner  Boolean
+  has_noise_cancelling Boolean
+  reservations         Reservation[]
+  created_at           DateTime      @default(now())
+  updated_at           DateTime      @updatedAt
+}
