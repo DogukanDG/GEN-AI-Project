@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Box,
   TextField,
@@ -57,10 +57,9 @@ function HomePage() {
     purpose: "",
   });
   const examplePrompts = [
-    "We need a presentation room for 5 people with projector and air conditioning",
-    "Find a quiet meeting room for 4 people this afternoon",
-    "Show me classrooms with natural light for 20 students",
-    "Reserve a conference room with microphone and camera for tomorrow morning",
+    "Find a quiet meeting room for 4 people with air conditioning",
+    "I need a quiet, air‑conditioned study room for 10 students tomorrow from 16:00 to 18:00.",
+    "I need a study room with air‑conditioning for 8 students tomorrow from 10:00 to 12:00.",
   ];
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -83,6 +82,11 @@ function HomePage() {
     try {
       // Parse the reserved slot (format: "HH:MM-HH:MM")
       const [reservedStart, reservedEnd] = reservedSlot.split("-");
+      
+      if (!reservedStart || !reservedEnd) {
+        console.error("Invalid reserved slot format:", reservedSlot);
+        return false;
+      }
 
       // Convert times to minutes for easier comparison
       const timeToMinutes = (time: string): number => {
@@ -96,11 +100,31 @@ function HomePage() {
       const reservedEndMin = timeToMinutes(reservedEnd);
 
       // Check for overlap: slot starts before reserved ends AND slot ends after reserved starts
-      return slotStartMin < reservedEndMin && slotEndMin > reservedStartMin;
+      const hasOverlap = slotStartMin < reservedEndMin && slotEndMin > reservedStartMin;
+      
+      // Also check for exact match
+      const isExactMatch = slotStartMin === reservedStartMin && slotEndMin === reservedEndMin;
+      
+      return hasOverlap || isExactMatch;
     } catch (error) {
-      console.error("Error parsing time slot:", error);
+      console.error("Error parsing time slot:", error, "Slot:", `${slotStart}-${slotEnd}`, "Reserved:", reservedSlot);
       return false;
     }
+  };
+
+  const convertUTCSlotToLocal = (slot: string) => {
+    const [start, end] = slot.split("-");
+    const today = new Date();
+    const [startH, startM] = start.split(":").map(Number);
+    const [endH, endM] = end.split(":").map(Number);
+
+    const startDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), startH, startM));
+    const endDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), endH, endM));
+
+    const localStart = startDate.getHours().toString().padStart(2, "0") + ":" + startDate.getMinutes().toString().padStart(2, "0");
+    const localEnd = endDate.getHours().toString().padStart(2, "0") + ":" + endDate.getMinutes().toString().padStart(2, "0");
+
+    return `${localStart}-${localEnd}`;
   };
 
   useEffect(() => {
@@ -128,16 +152,26 @@ function HomePage() {
     // Load reserved slots if date is available
     if (requirements.date && room.roomNumber) {
       try {
+        console.log(`\n🔍 FETCHING RESERVED SLOTS FOR:`);
+        console.log(`Room: ${room.roomNumber}`);
+        console.log(`Date: ${requirements.date}`);
+        
         const reserved = await roomService.getReservedSlots({
           roomNumber: room.roomNumber,
           date: requirements.date,
         });
-        setReservedSlots(reserved);
-        console.log("Reserved slots for", room.roomNumber, "on", requirements.date, ":", reserved);
-        console.log(
-          "Time slot periods:",
-          timeSlotPeriods.map((slot) => `${slot.start}-${slot.end}`)
-        );
+        
+        console.log(`\n📋 RAW RESERVED SLOTS FROM API:`, reserved);
+        console.log(`Number of raw slots: ${reserved.length}`);
+        
+        // Rezerve edilmiş slotların formatını ve doğruluğunu kontrol edin
+        const validReservedSlots = reserved
+          .filter(slot => /^\d{2}:\d{2}-\d{2}:\d{2}$/.test(slot))
+          .map(convertUTCSlotToLocal);
+
+        console.log(`\n📝 VALID RESERVED SLOTS AFTER FILTERING:`, validReservedSlots);
+        
+        setReservedSlots(validReservedSlots);
       } catch (error: any) {
         console.error("Error loading reserved slots:", error);
         // Don't show error for rate limiting, just keep existing slots
@@ -268,8 +302,14 @@ function HomePage() {
               roomNumber: selectedRoom.roomNumber,
               date: date.toISOString().split("T")[0],
             });
-            setReservedSlots(reserved);
-            console.log("Reserved slots (date change):", reserved);
+            
+            // Rezerve edilmiş slotların formatını ve doğruluğunu kontrol edin
+            const validReservedSlots = reserved
+              .filter(slot => /^\d{2}:\d{2}-\d{2}:\d{2}$/.test(slot))
+              .map(convertUTCSlotToLocal);
+            
+            setReservedSlots(validReservedSlots);
+            console.log("Reserved slots (date change):", validReservedSlots);
             console.log(
               "Time slot periods:",
               timeSlotPeriods.map((slot) => `${slot.start}-${slot.end}`)
@@ -626,7 +666,7 @@ function HomePage() {
                                     verticalAlign: "middle",
                                   }}
                                 />
-                                Type: {room.room.roomType === "classroom" ? "Classroom" : "Meeting Room"}
+                                Type: {room.room.roomType === "classroom" ? "Classroom" : "Study Room"}
                               </Typography>
                               <Typography
                                 variant="body2"
@@ -844,22 +884,17 @@ function HomePage() {
                     >
                       <MenuItem value="">Select time slot</MenuItem>
                       {timeSlotPeriods.map((slot) => {
+                        const slotRange = `${slot.start}-${slot.end}`;
+                        
                         // Check if this exact time slot or overlapping time slot is reserved
                         const isDisabled = reservedSlots.some((reservedSlot) => {
-                          const slotRange = `${slot.start}-${slot.end}`;
-
                           // Exact match check
                           if (reservedSlot === slotRange) {
-                            console.log(`Exact match found: ${slotRange} matches ${reservedSlot}`);
                             return true;
                           }
 
                           // Overlap check - but only if there's actual time conflict
-                          const hasOverlap = timeSlotOverlaps(slot.start, slot.end, reservedSlot);
-                          if (hasOverlap) {
-                            console.log(`Overlap found: ${slotRange} overlaps with ${reservedSlot}`);
-                          }
-                          return hasOverlap;
+                          return timeSlotOverlaps(slot.start, slot.end, reservedSlot);
                         });
 
                         return (

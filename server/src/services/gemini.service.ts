@@ -231,7 +231,7 @@ private hasStrongRoomKeywords(text: string): boolean {
   ];
 
   const capacityIndicators = [
-    'people', 'kişi', 'personas', 'personnes', 'personen'
+    'people', 'person', 'kişi', 'student', 'capacity', 'seat', 'attendee'
   ];
 
   const lowerText = text.toLowerCase();
@@ -253,7 +253,7 @@ private hasStrongRoomKeywords(text: string): boolean {
   const validation = await this.validateRoomRequest(userPrompt);
 
   // More strict validation check
-  if (!validation.isValid || validation.confidence < 75) { // Increased threshold
+  if (!validation.isValid || validation.confidence < 60) { // Increased threshold
     console.log("Validation failed:", validation);
     throw new Error(
       `Invalid room booking request: ${
@@ -264,13 +264,13 @@ private hasStrongRoomKeywords(text: string): boolean {
   }
 
   // Add additional check: if confidence is low but valid, double-check
-  if (validation.isValid && validation.confidence < 80) {
+  if (validation.isValid && validation.confidence < 70) {
     console.log("Low confidence validation, double-checking...");
     
     // Simple keyword verification
     if (!this.hasStrongRoomKeywords(userPrompt)) {
       throw new Error(
-        `Low confidence room booking request (${validation.confidence}%) and no strong room keywords detected`
+        `Medium confidence room booking request (${validation.confidence}%) with insufficient room context`
       );
     }
   }
@@ -387,49 +387,56 @@ private hasStrongRoomKeywords(text: string): boolean {
     CAPACITY SCORING RULES (Most Important - 60% of total score):
     ${requirements.capacity ? `
     - Requested capacity: ${requirements.capacity} people
-    - Perfect match (exact capacity): 60 points
-    - Close match (±2 people): 50-55 points  
-    - Acceptable range (±5 people): 40-45 points
-    - Over capacity but usable (up to +50%): 30-35 points
+    - EXACT capacity match (same number): 75 points
+    - Very close match (±1 person): 70 points
+    - Close match (±2 people): 65 points
+    - Near match (±3 people): 60 points
+    - Reasonable match (±5 people): 50 points
+    - Over capacity but efficient (≤25% more): 40 points
+    - Over capacity but wasteful (26-50% more): 30 points
+    - Significantly over capacity (>50% more): 20 points
     - Under capacity (cannot fit everyone): 0 points
-    - Heavily over capacity (more than 2x needed): 10-20 points
     
     Example scoring for ${requirements.capacity} people:
-    - Room for ${requirements.capacity} people: 60 points
-    - Room for ${requirements.capacity - 1}-${requirements.capacity + 1} people: 55 points
-    - Room for ${requirements.capacity - 2}-${requirements.capacity + 2} people: 50 points
-    - Room for ${requirements.capacity - 5}-${requirements.capacity + 5} people: 45 points
+    - Room for exactly ${requirements.capacity} people: 75 points
+    - Room for ${requirements.capacity - 1} or ${requirements.capacity + 1} people: 70 points
+    - Room for ${requirements.capacity - 2} or ${requirements.capacity + 2} people: 65 points
+    - Room for ${requirements.capacity - 5} or ${requirements.capacity + 5} people: 50 points
+    - Room for ${Math.ceil(requirements.capacity * 1.25)} people: 40 points
     - Room for ${Math.ceil(requirements.capacity * 1.5)} people: 30 points
-    - Room for ${requirements.capacity * 2} people: 15 points
+    - Room for ${Math.ceil(requirements.capacity * 2)} people: 20 points
     ` : 'No capacity specified - give equal weight to other features'}
 
-    OTHER FEATURES SCORING (40% of total score):
+    OTHER FEATURES SCORING (25% of total score):
     ONLY score for explicitly requested features:
-    - Required features match: +10 points each (only if user requested)
+    - Required features match: +5 points each (only if user requested)
     - Room type match: +10 points (only if user specified)
-    - Time/date availability: +10 points (only if user specified)
+    - Time/date availability: +5 points (only if user specified)
     - DO NOT give bonus points for unrequested features
-    - If no other features requested, give full 40 points to capacity-only requests
+
+    RANKING ALGORITHM:
+    1. First sort by capacity proximity to requested capacity
+    2. Then consider other requested features
+    3. Capacity is ALWAYS the priority criterion
 
     Please rank the rooms from best to worst match and return a JSON array with the following structure:
     [
       {
         "roomNumber": "room_number",
         "matchScore": 0-100,
-        "capacityScore": 0-60,
-        "featuresScore": 0-40,
+        "capacityScore": 0-75,
+        "featuresScore": 0-25,
+        "capacityDifference": "difference from requested capacity (+3, -2, etc.)",
         "matchReasons": ["reason1", "reason2"],
         "room": { original room object }
       }
     ]
 
     IMPORTANT: 
-    - If user ONLY specified capacity, focus 100% on capacity matching
-    - Only give points for features the user explicitly requested
-    - DO NOT give bonus points for extra features user didn't ask for
-    - Calculate capacity score first (0-60 points if other features requested, 0-100 if only capacity)
-    - Then calculate features score ONLY for requested features
+    - Prioritize rooms with the CLOSEST capacity to requested (not just bigger rooms)
+    - Include "capacityDifference" to show how close the match is
     - Sort by total score (highest first)
+    - Make capacity the dominant factor in your ranking
 
     Return only the JSON array without any additional text or formatting.
     `;
@@ -461,70 +468,53 @@ private hasStrongRoomKeywords(text: string): boolean {
     console.log(`calculateCapacityScore called:`, {
       requestedCapacity,
       roomCapacity, 
-      isOnlyCapacity,
-      hasRequestedCapacity: !!requestedCapacity,
-      hasRoomCapacity: !!roomCapacity
+      isOnlyCapacity
     });
 
     if (!requestedCapacity || !roomCapacity) {
       const defaultScore = isOnlyCapacity ? 50 : 30;
-      console.log(`Missing capacity data, returning default: ${defaultScore}`);
       return defaultScore;
     }
 
-    const maxScore = isOnlyCapacity ? 100 : 60; // Eğer sadece kapasite isteniyorsa tam puan
+    // Kapasite puanlamasının maksimum değeri
+    const maxScore = isOnlyCapacity ? 100 : 75;
+    
+    // Tam olarak istenilen kapasitede mi?
+    if (roomCapacity === requestedCapacity) {
+      return maxScore; // Mükemmel eşleşme
+    }
+    
+    // Kapasite farkı
     const difference = Math.abs(roomCapacity - requestedCapacity);
-
-    console.log(`Capacity calculation:`, {
-      maxScore,
-      difference,
-      ratio: roomCapacity / requestedCapacity
-    });
-
-    // Oda çok küçükse (herkesi alamazsa)
+    
+    // Kapasite yeterli değilse sıfır puan
     if (roomCapacity < requestedCapacity) {
-      console.log(`Room too small: ${roomCapacity} < ${requestedCapacity}, returning 0`);
-      return 0;
+      return 0; // Yetersiz kapasite
     }
 
-    // Mükemmel eşleşme
-    if (difference === 0) {
-      console.log(`Perfect match, returning ${maxScore}`);
-      return maxScore;
+    // Kapasite farkına göre puanlama
+    if (difference === 1) {
+      return Math.round(maxScore * 0.93); // ±1 kişi: %93
+    } else if (difference === 2) {
+      return Math.round(maxScore * 0.87); // ±2 kişi: %87
+    } else if (difference <= 3) {
+      return Math.round(maxScore * 0.80); // ±3 kişi: %80
+    } else if (difference <= 5) {
+      return Math.round(maxScore * 0.67); // ±5 kişi: %67
     }
 
-    // Yakın eşleşme (±1-2 kişi)
-    if (difference <= 2) {
-      const score = Math.round(maxScore * 0.9) - (difference * 2);
-      console.log(`Close match (±2), returning ${score}`);
-      return score;
-    }
-
-    // Kabul edilebilir aralık (±3-5 kişi)
-    if (difference <= 5) {
-      const score = Math.round(maxScore * 0.75) - (difference * 2);
-      console.log(`Acceptable range (±5), returning ${score}`);
-      return score;
-    }
-
-    // Kapasitesi fazla ama kullanılabilir
+    // Kapasite fazlası durumunda oran hesapla
     const ratio = roomCapacity / requestedCapacity;
-    if (ratio <= 1.5) {
-      const score = Math.max(Math.round(maxScore * 0.5), Math.round(maxScore * 0.75) - difference);
-      console.log(`Over capacity but usable (ratio: ${ratio}), returning ${score}`);
-      return score;
+    
+    if (ratio <= 1.25) {
+      return Math.round(maxScore * 0.53); // ≤25% fazla: %53
+    } else if (ratio <= 1.5) {
+      return Math.round(maxScore * 0.40); // 26-50% fazla: %40
+    } else if (ratio <= 2) {
+      return Math.round(maxScore * 0.27); // 51-100% fazla: %27
+    } else {
+      return Math.round(maxScore * 0.20); // >100% fazla: %20
     }
-
-    // Çok büyük oda (2 katından fazla)
-    if (ratio > 2) {
-      const score = Math.round(maxScore * 0.1);
-      console.log(`Way over capacity (ratio: ${ratio}), returning ${score}`);
-      return score;
-    }
-
-    const score = Math.max(Math.round(maxScore * 0.25), Math.round(maxScore * 0.6) - difference);
-    console.log(`Default case, returning ${score}`);
-    return score;
   }
 
   // Ana ranking fonksiyonu - önce AI dener, başarısız olursa JavaScript fallback
@@ -555,9 +545,14 @@ private hasStrongRoomKeywords(text: string): boolean {
           !requirements.date
         );
 
+        // Define variables for capacity calculation
+        const requestedCapacity = requirements.capacity || 0;
+        const roomCapacity = room.capacity || 0;
+        
         // Kapasite scoring
+        let capacityScore = 0;
         if (requirements.capacity) {
-          const capacityScore = this.calculateCapacityScore(
+          capacityScore = this.calculateCapacityScore(
             requirements.capacity, 
             room.capacity, 
             onlyCapacityRequested
@@ -621,9 +616,10 @@ private hasStrongRoomKeywords(text: string): boolean {
         return {
           roomNumber: room.roomNumber || room.id,
           matchScore: Math.min(totalScore, 100),
-          capacityScore: requirements.capacity ? 
-            this.calculateCapacityScore(requirements.capacity, room.capacity, onlyCapacityRequested) : 50,
+          capacityScore: capacityScore,
           featuresScore: onlyCapacityRequested ? 0 : featuresScore,
+          capacityDifference: requirements.capacity ? 
+            `${roomCapacity >= requestedCapacity ? "+" : ""}${roomCapacity - requestedCapacity}` : "N/A",
           matchReasons: reasons,
           room: room
         };
